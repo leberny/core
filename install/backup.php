@@ -36,7 +36,7 @@ if (isset($argv)) {
 
 try {
 	require_once dirname(__FILE__) . '/../core/php/core.inc.php';
-	echo __("***************Lancement de la sauvegarde de Jeedom***************\n", __FILE__);
+	echo __("***************Lancement de la sauvegarde de Jeedom le ", __FILE__) . date('Y-m-d H:i:s') . "***************\n";
 	global $CONFIG;
 	$tmp = dirname(__FILE__) . '/../tmp/backup';
 	if (!file_exists($tmp)) {
@@ -57,14 +57,22 @@ try {
 		throw new Exception(__('Le dossier des sauvegardes n\'est pas accessible en écriture. Vérifiez les droits : ', __FILE__) . $backup_dir);
 	}
 
-	$bakcup_name = 'backup-' . getVersion('jeedom') . '-' . date("Y-m-d-H\hi") . '.tar.gz';
+	try {
+		echo __("Mise à plat des droits...", __FILE__);
+		jeedom::cleanFileSytemRight();
+		echo __("OK\n", __FILE__);
+	} catch (Exception $e) {
+		echo __('***ERREUR*** ', __FILE__) . $e->getMessage();
+	}
+
+	$bakcup_name = 'backup-' . jeedom::version() . '-' . date("Y-m-d-H\hi") . '.tar.gz';
 
 	echo __('Sauvegarde des fichiers...', __FILE__);
-	$exclude = array('tmp', 'backup', 'log', str_replace('/', '', jeedom::getCurrentSysInfoFolder()), str_replace('/', '', jeedom::getCurrentSqlBuddyFolder()));
+	$exclude = array('tmp', 'backup', 'log', 'ngrok', str_replace('/', '', jeedom::getCurrentSysInfoFolder()), str_replace('/', '', jeedom::getCurrentSqlBuddyFolder()));
 	if (strpos('/', config::byKey('backup::path')) === false) {
 		$exclude[] = config::byKey('backup::path');
 	}
-	rcopy(dirname(__FILE__) . '/..', $tmp, true, $exclude);
+	rcopy(dirname(__FILE__) . '/..', $tmp, true, $exclude, true);
 	echo __("OK", __FILE__) . "\n";
 
 	echo __('Suppression du fichier d\'identification de la base de données...', __FILE__);
@@ -82,7 +90,7 @@ try {
 		foreach (plugin::listPlugin(true) as $plugin) {
 			$plugin_id = $plugin->getId();
 			if (method_exists($plugin_id, 'backup')) {
-				echo __('Sauvegarde spécifique pour le plugin...' . $plugin_id . '...', __FILE__);
+				echo __('Sauvegarde spécifique pour le plugin ' . $plugin_id . '...', __FILE__);
 				if (!file_exists($tmp . '/plugin_backup/' . $plugin_id)) {
 					mkdir($tmp . '/plugin_backup/' . $plugin_id, 0770, true);
 				}
@@ -117,6 +125,21 @@ try {
 	while (getDirectorySize($backup_dir) > $max_size) {
 		$older = array('file' => null, 'datetime' => null);
 		foreach (ls($backup_dir, '*') as $file) {
+			if (is_dir($backup_dir . '/' . $file)) {
+				foreach (ls($backup_dir . '/' . $file, '*') as $file2) {
+					if ($older['datetime'] == null) {
+						$older['file'] = $backup_dir . '/' . $file . '/' . $file2;
+						$older['datetime'] = filemtime($backup_dir . '/' . $file . '/' . $file2);
+					}
+					if ($older['datetime'] > filemtime($backup_dir . '/' . $file . '/' . $file2)) {
+						$older['file'] = $backup_dir . '/' . $file . '/' . $file2;
+						$older['datetime'] = filemtime($backup_dir . '/' . $file . '/' . $file2);
+					}
+				}
+			}
+			if (!is_file($backup_dir . '/' . $file)) {
+				continue;
+			}
 			if ($older['datetime'] == null) {
 				$older['file'] = $backup_dir . '/' . $file;
 				$older['datetime'] = filemtime($backup_dir . '/' . $file);
@@ -139,7 +162,6 @@ try {
 			break;
 		}
 	}
-	echo __("OK", __FILE__) . "\n";
 
 	if (config::byKey('backup::cloudUpload') == 1 && init('noCloudUpload', 0) == 0) {
 		echo __('Envoi de la sauvegarde dans le cloud...', __FILE__);
@@ -162,7 +184,7 @@ try {
 		}
 		echo __("OK", __FILE__) . "\n";
 	}
-
+	echo __("Nom du backup : ", __FILE__) . $backup_dir . '/' . $bakcup_name . "\n";
 	echo __("***************Fin de la sauvegarde de Jeedom***************\n", __FILE__);
 	echo "[END BACKUP SUCCESS]\n";
 } catch (Exception $e) {

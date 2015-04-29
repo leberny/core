@@ -324,6 +324,10 @@ function hadFileRight($_allowPath, $_path) {
 	return false;
 }
 
+function getVersion($_name) {
+	return jeedom::version();
+}
+
 function ls($folder = "", $pattern = "*", $recursivly = false, $options = array('files', 'folders')) {
 	if ($folder) {
 		$current_folder = realpath('.');
@@ -419,17 +423,11 @@ function removeCR($_string) {
 	return trim($_string);
 }
 
-function getVersion($_name) {
-	include dirname(__FILE__) . '/../config/version.config.php';
-	global $VERSION;
-	if (isset($VERSION[$_name])) {
-		return $VERSION[$_name];
+function rcopy($src, $dst, $_emptyDest = true, $_exclude = array(), $_noError = false) {
+	if (!file_exists($src)) {
+		return true;
 	}
-	return false;
-}
-
-function rcopy($src, $dst, $_emptyDest = true, $_exclude = array()) {
-	if ($_emptyDest && file_exists($dst)) {
+	if ($_emptyDest) {
 		rrmdir($dst);
 	}
 	if (is_dir($src)) {
@@ -439,14 +437,20 @@ function rcopy($src, $dst, $_emptyDest = true, $_exclude = array()) {
 		$files = scandir($src);
 		foreach ($files as $file) {
 			if ($file != "." && $file != ".." && !in_array($file, $_exclude)) {
-				if (!rcopy("$src/$file", "$dst/$file", $_exclude)) {
+				if (!rcopy($src . '/' . $file, $dst . '/' . $file, $_emptyDest, $_exclude, $_noError) && !$_noError) {
 					return false;
 				}
 			}
 		}
-	} else if (file_exists($src)) {
+	} else {
 		if (!in_array(basename($src), $_exclude)) {
-			return copy($src, $dst);
+			if (!$_noError) {
+				return copy($src, $dst);
+			} else {
+				@copy($src, $dst);
+				return true;
+			}
+
 		}
 	}
 	return true;
@@ -822,14 +826,17 @@ function cast($sourceObject, $destination) {
 }
 
 function getIpFromString($_string) {
-	if (strpos($_string, '://') !== false) {
-		$_string = substr($_string, strpos($_string, '://') + 3);
-		$pos = strpos($_string, '/');
+	$result = parse_url($_string);
+	if (isset($result['host'])) {
+		$_string = $result['host'];
 	} else {
-		$pos = strpos($_string, '/');
-	}
-	if ($pos > 0) {
-		$_string = substr($_string, 0, $pos);
+		$_string = str_replace(array('https://', 'http://'), '', $_string);
+		if (strpos($_string, '/') !== false) {
+			$_string = substr($_string, 0, strpos($_string, '/'));
+		}
+		if (strpos($_string, ':') !== false) {
+			$_string = substr($_string, 0, strpos($_string, ':'));
+		}
 	}
 	if (!filter_var($_string, FILTER_VALIDATE_IP)) {
 		$_string = gethostbyname($_string);

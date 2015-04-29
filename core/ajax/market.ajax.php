@@ -61,6 +61,18 @@ try {
 		ajax::success(market::getInfo(init('logicalId')));
 	}
 
+	if (init('action') == 'byLogicalId') {
+		if (init('noExecption', 0) == 1) {
+			try {
+				ajax::success(utils::o2a(market::byLogicalIdAndType(init('logicalId'), init('type'))));
+			} catch (Exception $e) {
+				ajax::success();
+			}
+		} else {
+			ajax::success(utils::o2a(market::byLogicalIdAndType(init('logicalId'), init('type'))));
+		}
+	}
+
 	if (init('action') == 'test') {
 		ajax::success(market::test());
 	}

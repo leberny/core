@@ -6,8 +6,8 @@ if (!isConnect('admin')) {
 if (init('id') != '') {
 	$market = market::byId(init('id'));
 }
-if (init('logicalId') != '') {
-	$market = market::byLogicalId(init('logicalId'));
+if (init('logicalId') != '' && init('type') != '') {
+	$market = market::byLogicalIdAndType(init('logicalId'), init('type'));
 }
 if (!isset($market)) {
 	throw new Exception('404 not found');
@@ -15,6 +15,7 @@ if (!isset($market)) {
 include_file('3rdparty', 'bootstrap.rating/bootstrap.rating', 'js');
 include_file('3rdparty', 'slick/slick.min', 'js');
 include_file('3rdparty', 'slick/slick', 'css');
+include_file('3rdparty', 'slick/slick-theme', 'css');
 include_file('3rdparty', 'fancybox/jquery.fancybox', 'js');
 include_file('3rdparty', 'fancybox/jquery.fancybox', 'css');
 
@@ -99,7 +100,11 @@ if ($market->getCost() > 0) {
 	if ($market->getCost() != $market->getRealCost()) {
 		echo '<span data-l1key="rating" style="font-size: 1em;text-decoration:line-through;">' . number_format($market->getRealCost(), 2) . ' €</span> ';
 	}
-	echo '<span data-l1key="rating" style="font-size: 1.5em;">' . number_format($market->getCost(), 2) . ' €</span> (TVA non applicable, article 293 B du CGI)';
+	if ($market->getCostHt() != 0) {
+		echo '<span data-l1key="rating" style="font-size: 1.5em;">' . number_format($market->getCost(), 2) . ' € TTC</span> (' . $market->getCostHt() . '€ HT)';
+	} else {
+		echo '<span data-l1key="rating" style="font-size: 1.5em;">' . number_format($market->getCost(), 2) . ' €</span> (TVA non applicable, article 293 B du CGI)';
+	}
 } else {
 	echo '<span data-l1key="rating" style="font-size: 1.5em;">{{Gratuit}}</span>';
 }
@@ -178,7 +183,9 @@ foreach ($market->getImg('screenshot') as $screenshot) {
         <div class='row'>
             <div class='col-sm-2'>
                 <label class="control-label">{{Auteur}}</label><br/>
-                <span><?php echo $market->getAuthor()?></span>
+                <span><?php echo $market->getAuthor()?></span><br/>
+                <label class="control-label">{{Derniere mise à jour par}}</label><br/>
+                <span><?php echo $market->getUpdateBy()?></span>
             </div>
             <div class='col-sm-2'>
                 <label class="control-label">{{Lien}}</label><br/>
@@ -297,17 +304,13 @@ if (is_object($update) && $update->getConfiguration('version', 'stable') == 'bet
         autoHeight: true,
     });
 
-    $('.variable-width').unslick().slick({
+    $('.variable-width').slick({
         dots: true,
-        speed: 200,
+        speed: 300,
         variableWidth: true,
         accessibility: true,
+        infinite: true,
     });
-    $('.variable-width').slickNext();
-    setTimeout(function () {
-        $('.variable-width').slickGoTo(0);
-    }, 200);
-
 
     $('body').setValues(market_display_info, '.marketAttr');
     if($.isArray(market_display_info.changelog)){
@@ -382,76 +385,47 @@ if (is_object($update) && $update->getConfiguration('version', 'stable') == 'bet
 $('.bt_installFromMarket').on('click', function () {
     var id = $(this).attr('data-market_id');
     var logicalId = $(this).attr('data-market_logicalId');
-        $.ajax({// fonction permettant de faire de l'ajax
-            type: "POST", // methode de transmission des données au fichier php
-            url: "core/ajax/market.ajax.php", // url du fichier php
-            data: {
-                action: "install",
-                id: id,
-                version: $(this).attr('data-version'),
-            },
-            dataType: 'json',
-            error: function (request, status, error) {
-                handleAjaxError(request, status, error);
-            },
-            success: function (data) { // si l'appel a bien fonctionné
-            if (data.state != 'ok') {
-                $('#div_alertMarketDisplay').showAlert({message: data.result, level: 'danger'});
-                return;
-            }
-            var url = window.location.href;
-            if (url.indexOf('p=plugin') > 0) {
-                window.location.href = 'index.php?v=d&p=plugin&id=' + logicalId;
-            }
-            $('#div_alertMarketDisplay').showAlert({message: '{{Objet installé avec succès}}', level: 'success'});
-        }
-    });
+
+
+    jeedom.market.install({
+        id: id,
+        version: $(this).attr('data-version'),
+        error: function (error) {
+            $('#div_alertMarketDisplay').showAlert({message: error.message, level: 'danger'});
+        },
+ success: function (data) { // si l'appel a bien fonctionné
+ var url = window.location.href;
+ if (url.indexOf('p=plugin') > 0) {
+    window.location.href = 'index.php?v=d&p=plugin&id=' + logicalId;
+}
+$('#div_alertMarketDisplay').showAlert({message: '{{Objet installé avec succès}}', level: 'success'})
+}
+});
+
 });
 
 $('#bt_removeFromMarket').on('click', function () {
     var id = $(this).attr('data-market_id');
-        $.ajax({// fonction permettant de faire de l'ajax
-            type: "POST", // methode de transmission des données au fichier php
-            url: "core/ajax/market.ajax.php", // url du fichier php
-            data: {
-                action: "remove",
-                id: id
-            },
-            dataType: 'json',
-            error: function (request, status, error) {
-                handleAjaxError(request, status, error);
-            },
-            success: function (data) { // si l'appel a bien fonctionné
-            if (data.state != 'ok') {
-                $('#div_alertMarketDisplay').showAlert({message: data.result, level: 'danger'});
-                return;
-            }
-            $.showLoading();
-            window.location.reload();
-        }
-    });
-    });
+    jeedom.market.remove({
+        id: id,
+        error: function (error) {
+            $('#div_alertMarketDisplay').showAlert({message: error.message, level: 'danger'});
+        },
+ success: function (data) { // si l'appel a bien fonctionné
+ $.showLoading();
+ window.location.reload();
+}
+});
+});
 
 $('#in_myRating').on('change', function () {
     var id = $('.marketAttr[data-l1key=id]').value();
-        $.ajax({// fonction permettant de faire de l'ajax
-            type: "POST", // methode de transmission des données au fichier php
-            url: "core/ajax/market.ajax.php", // url du fichier php
-            data: {
-                action: "setRating",
-                id: id,
-                rating: $(this).val()
-            },
-            dataType: 'json',
-            error: function (request, status, error) {
-                handleAjaxError(request, status, error);
-            },
-            success: function (data) { // si l'appel a bien fonctionné
-            if (data.state != 'ok') {
-                $('#div_alert').showAlert({message: data.result, level: 'danger'});
-                return;
-            }
-        }
-    });
-    });
+    jeedom.market.setRating({
+       id: id,
+       rating: $(this).val(),
+       error: function (error) {
+        $('#div_alertMarketDisplay').showAlert({message: error.message, level: 'danger'});
+    }
+});
+});
 </script>

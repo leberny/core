@@ -15,27 +15,13 @@
  * along with Jeedom. If not, see <http://www.gnu.org/licenses/>.
  */
 
+ printWifiList();
+
  $("#bt_genKeyAPI").on('click', function (event) {
     $.hideAlert();
     bootbox.confirm('{{Etes-vous sûr de vouloir réinitialiser la clef API de Jeedom ? Vous devrez reconfigurer tous les équipements communicant avec Jeedom et utilisant la clef API}}', function (result) {
         if (result) {
             genKeyAPI();
-        }
-    });
-});
-
- $('#bt_forceApplyUPnP').on('click', function () {
-    $.hideAlert();
-    bootbox.confirm('{{Etes-vous sûr de vouloir appliquer les regles UPnP ?}}', function (result) {
-        if (result) {
-            jeedom.doUPnP({
-                error: function (error) {
-                    $('#div_alert').showAlert({message: error.message, level: 'danger'});
-                },
-                success: function (data) {
-                    $('#div_alert').showAlert({message: '{{Commande réalisée avec succès}}', level: 'success'});
-                }
-            });
         }
     });
 });
@@ -50,6 +36,52 @@
             $('#div_alert').showAlert({message: '{{Commande réalisée avec succès}}', level: 'success'});
         }
     });
+});
+
+ $('#bt_restartNgrok').on('click', function () {
+   $.hideAlert();
+   jeedom.config.save({
+    configuration: $('#config').getValues('.configKey')[0],
+    error: function (error) {
+        $('#div_alert').showAlert({message: error.message, level: 'danger'});
+    },
+    success: function () {
+       jeedom.network.restartNgrok({
+        error: function (error) {
+            $('#div_alert').showAlert({message: error.message, level: 'danger'});
+        },
+        success: function (data) {
+         modifyWithoutSave = false;
+         window.location.href='index.php?v=d&p=administration&panel=config_network';
+     }
+ });
+   }
+}); 
+});
+
+
+ $('#bt_haltNgrok').on('click', function () {
+   $.hideAlert();
+   jeedom.config.save({
+    configuration: $('#config').getValues('.configKey')[0],
+    error: function (error) {
+        $('#div_alert').showAlert({message: error.message, level: 'danger'});
+    },
+    success: function () {
+       jeedom.network.stopNgrok({
+        error: function (error) {
+            $('#div_alert').showAlert({message: error.message, level: 'danger'});
+        },
+        success: function (data) {
+         modifyWithoutSave = false;
+         window.location.href='index.php?v=d&p=administration&panel=config_network';
+     }
+ });
+   }
+}); 
+
+
+
 });
 
  $("#bt_nodeJsKey").on('click', function (event) {
@@ -117,15 +149,8 @@
     var href = $(this).attr('data-href');
     bootbox.confirm('{{Attention ceci est une opération risquée. Confirmez-vous que vous comprennez bien les risques et que en cas de Jeedom non fonctionel par la suite aucune demande de support ne sera acceptée (cette tentative d\'accès est enregistré) ?}}', function (result) {
         if (result) {
-            bootbox.prompt("Veuillez indiquer le mot de passe d\'accès à l\'administration de la base ?", function (result) {
-                if (result == 'zgw77VL5') {
-                    var win = window.open(href, '_blank');
-                    win.focus();
-                } else {
-                    $('#div_alert').showAlert({message: '{{Mot de passe incorrect}}', level: 'danger'});
-                }
-            });
-
+            var win = window.open(href, '_blank');
+            win.focus();
         }
     });
 });
@@ -142,7 +167,7 @@
                 type: 'POST',
                 url: 'core/ajax/user.ajax.php',
                 data: {
-                    action: 'testLdapConneciton',
+                    action: 'testLdapConnection',
                 },
                 dataType: 'json',
                 error: function (request, status, error) {
@@ -172,6 +197,10 @@ $('#bt_selectMailCmd').on('click', function () {
     });
 });
 
+if (getUrlVars('panel') != false) {
+ $('a[href=#'+getUrlVars('panel')+']').click();
+}
+
 printConvertColor();
 
 $.showLoading();
@@ -196,24 +225,15 @@ $('#bt_testMarketConnection').on('click', function () {
             $('#div_alert').showAlert({message: error.message, level: 'danger'});
         },
         success: function () {
-            $.ajax({// fonction permettant de faire de l'ajax
-                type: "POST", // methode de transmission des données au fichier php
-                url: "core/ajax/market.ajax.php", // url du fichier php
-                data: {
-                    action: "test"
-                },
-                dataType: 'json',
-                error: function (request, status, error) {
-                    handleAjaxError(request, status, error);
-                },
-                success: function (data) { // si l'appel a bien fonctionné
-                if (data.state != 'ok') {
-                    $('#div_alert').showAlert({message: data.result, level: 'danger'});
-                    return;
-                }
-                $('#div_alert').showAlert({message: '{{Connexion au market réussie}}', level: 'success'});
-            }
-        });
+            jeedom.market.test({
+               error: function (error) {
+                $('#div_alert').showAlert({message: error.message, level: 'danger'});
+            },
+            success: function () {
+             $('#div_alert').showAlert({message: '{{Connexion au market réussie}}', level: 'success'});
+         }
+
+     });
         }
     });
 });
@@ -372,3 +392,62 @@ function saveConvertColor() {
     }
 });
 }
+
+/**************************NETWORK***********************************/
+
+function printWifiList(_global){
+ jeedom.network.listWifi({
+    global : _global || false,
+    error: function (error) {
+        $('#div_alert').showAlert({message: error.message, level: 'danger'});
+    },
+    success: function (data) {
+        var option = '';
+        for(var i in data){
+            option += '<option value="'+data[i]+'">'; 
+            option += data[i]; 
+            option += '</option>';  
+        }
+        $('.configKey[data-l1key="network::wifi::ssid"]').empty().append(option);
+        jeedom.config.load({
+            configuration: {"network::wifi::ssid" : ""},
+            global : false,
+            error: function (error) {
+                $('#div_alert').showAlert({message: error.message, level: 'danger'});
+            },
+            success: function (data) {
+                $('#config').setValues(data, '.configKey');
+                modifyWithoutSave = false;
+            }
+        });
+    }
+});
+}
+
+$('#bt_writeInterfaceFile').on('click', function () {
+    bootbox.confirm('{{Etes-vous sûr de vouloir ecrire la configuration réseaux ? La moindre erreur peut rendre votre box inaccessible et vous obligera à une reinstallation. Suite à ce changement un redemarrage est necessaire.}}', function (result) {
+        if (result) {
+           $.hideAlert();
+           jeedom.config.save({
+            configuration: $('#config').getValues('.configKey')[0],
+            error: function (error) {
+                $('#div_alert').showAlert({message: error.message, level: 'danger'});
+            },
+            success: function () {
+               jeedom.network.writeInterfaceFile({
+                error: function (error) {
+                    $('#div_alert').showAlert({message: error.message, level: 'danger'});
+                },
+                success: function (data) {
+                 modifyWithoutSave = false;
+             }
+         });
+           }
+       }); 
+       }
+   });
+});
+
+$('#bt_refreshWifiList').on('click',function(){
+    printWifiList(true);
+});

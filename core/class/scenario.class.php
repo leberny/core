@@ -47,10 +47,10 @@ class scenario {
 	private $_realTrigger = '';
 	private $_return = '';
 
-	/*     * ***********************Methode static*************************** */
+	/*     * ***********************Méthodes statiques*************************** */
 
 	/**
-	 * Renvoit un object scenario
+	 * Renvoie un objet scenario
 	 * @param int  $_id id du scenario voulu
 	 * @return scenario object scenario
 	 */
@@ -65,7 +65,7 @@ class scenario {
 	}
 
 	/**
-	 * Renvoit tous les objects scenario
+	 * Renvoie tous les objets scenario
 	 * @return [] scenario object scenario
 	 */
 	public static function all($_group = '', $_type = null) {
@@ -503,7 +503,7 @@ class scenario {
 			$zip->extractTo($cibDir . '/');
 			$zip->close();
 		} else {
-			throw new Exception('Impossible de décompresser le zip : ' . $_path);
+			throw new Exception('Impossible de décompresser l\'archive zip : ' . $_path);
 		}
 		$moduleFile = dirname(__FILE__) . '/../config/scenario/' . $market->getLogicalId() . '.json';
 		if (!file_exists($moduleFile)) {
@@ -551,13 +551,23 @@ class scenario {
 
 	public function execute($_trigger = '', $_message = '') {
 		if ($this->getIsActive() != 1) {
-			$this->setLog(__('Impossible d\'exécuter le scénario : ', __FILE__) . $this->getHumanName() . ' sur : ' . $_message . ' car il est désactivé');
+			$this->setLog(__('Impossible d\'exécuter le scénario : ', __FILE__) . $this->getHumanName() . __(' sur : ', __FILE__) . $_message . __(' car il est désactivé', __FILE__));
 			$this->persistLog();
 			return;
 		}
-		log::add('event', 'event', __('Exécution du scénario ', __FILE__) . $this->getHumanName() . __(' déclencher par : ', __FILE__) . $_trigger);
+		if ($this->getConfiguration('timeDependency', 0) == 1 && !jeedom::isDateOk()) {
+			$this->setLog(__('Lancement du scénario : ', __FILE__) . $this->getHumanName() . __(' annulé car il utilise une condition de type temporelle et que la date système n\'est pas OK', __FILE__));
+			$this->persistLog();
+			return;
+		}
+		$cmd = cmd::byId(str_replace('#', '', $_trigger));
+		if (is_object($cmd)) {
+			log::add('event', 'event', __('Exécution du scénario ', __FILE__) . $this->getHumanName() . __(' déclenché par : ', __FILE__) . $cmd->getHumanName());
+		} else {
+			log::add('event', 'event', __('Exécution du scénario ', __FILE__) . $this->getHumanName() . __(' déclenché par : ', __FILE__) . $_trigger);
+		}
+		$this->setLog(__('Début d\'exécution du scénario : ', __FILE__) . $this->getHumanName() . '. ' . $_message);
 		if ($this->getConfiguration('speedPriority', 0) == 0) {
-			$this->setLog(__('Début d\'exécution du scénario : ', __FILE__) . $this->getHumanName() . '. ' . $_message);
 			$this->setDisplay('icon', '');
 			$this->setState('in progress');
 			$this->setPID(getmypid());
@@ -572,8 +582,9 @@ class scenario {
 			$this->setState('stop');
 			$this->setPID('');
 			$this->save();
-			$this->persistLog();
 		}
+		$this->setLog(__('Fin correcte du scénario', __FILE__));
+		$this->persistLog();
 		if ($this->getReturn() != '') {
 			return $this->getReturn();
 		}
@@ -676,7 +687,7 @@ class scenario {
 			$this->setTimeout(0);
 		}
 		if ($this->getName() == '') {
-			throw new Exception('Le nom du scénario ne peut être vide.');
+			throw new Exception('Le nom du scénario ne peut pas être vide.');
 		}
 		if (($this->getMode() == 'schedule' || $this->getMode() == 'all') && $this->getSchedule() == '') {
 			throw new Exception(__('Le scénario est de type programmé mais la programmation est vide', __FILE__));
@@ -1045,11 +1056,11 @@ class scenario {
 		if (isConnect('admin')) {
 			return true;
 		}
-		if ($_right = 'x') {
+		if ($_right == 'x') {
 			$rights = rights::byuserIdAndEntity($_user->getId(), 'scenario' . $this->getId() . 'action');
-		} elseif ($_right = 'w') {
+		} elseif ($_right == 'w') {
 			$rights = rights::byuserIdAndEntity($_user->getId(), 'scenario' . $this->getId() . 'edit');
-		} elseif ($_right = 'r') {
+		} elseif ($_right == 'r') {
 			$rights = rights::byuserIdAndEntity($_user->getId(), 'scenario' . $this->getId() . 'view');
 		}
 		if (!is_object($rights)) {
@@ -1059,6 +1070,9 @@ class scenario {
 	}
 
 	public function persistLog() {
+		if ($this->getConfiguration('noLog', 0) == 1) {
+			return;
+		}
 		if (!file_exists(dirname(__FILE__) . '/../../log/scenarioLog')) {
 			mkdir(dirname(__FILE__) . '/../../log/scenarioLog');
 		}

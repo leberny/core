@@ -48,9 +48,13 @@ class log {
 	}
 
 	public static function chunk($_log = '') {
+		$maxLineLog = config::byKey('maxLineLog');
+		if ($maxLineLog < 200) {
+			$maxLineLog = 200;
+		}
 		if ($_log != '') {
 			$path = self::getPathToLog($_log);
-			shell_exec('echo "$(tail -n ' . config::byKey('maxLineLog') . ' ' . $path . ')" > ' . $path);
+			shell_exec('echo "$(tail -n ' . $maxLineLog . ' ' . $path . ')" > ' . $path);
 			@chown($path, 'www-data');
 			@chgrp($path, 'www-data');
 			@chmod($path, 0777);
@@ -59,7 +63,7 @@ class log {
 			foreach ($logs as $log) {
 				$path = dirname(__FILE__) . '/../../log/' . $log;
 				if (is_file($path)) {
-					shell_exec('echo "$(tail -n ' . config::byKey('maxLineLog') . ' ' . $path . ')" > ' . $path);
+					shell_exec('echo "$(tail -n ' . $maxLineLog . ' ' . $path . ')" > ' . $path);
 					@chown($path, 'www-data');
 					@chgrp($path, 'www-data');
 					@chmod($path, 0777);
@@ -69,7 +73,7 @@ class log {
 			foreach ($logs as $log) {
 				$path = dirname(__FILE__) . '/../../log/scenarioLog/' . $log;
 				if (is_file($path)) {
-					shell_exec('echo "$(tail -n ' . config::byKey('maxLineLog') . ' ' . $path . ')" > ' . $path);
+					shell_exec('echo "$(tail -n ' . $maxLineLog . ' ' . $path . ')" > ' . $path);
 					@chown($path, 'www-data');
 					@chgrp($path, 'www-data');
 					@chmod($path, 0777);
@@ -87,10 +91,13 @@ class log {
 	 */
 	public static function clear($_log) {
 		$path = self::getPathToLog($_log);
-		if (file_exists($path)) {
+		if (file_exists($path) && strpos($_log, 'nginx.error') === false) {
 			$log = fopen($path, "w");
 			ftruncate($log, 0);
 			fclose($log);
+		}
+		if (strpos($_log, 'nginx.error') !== false) {
+			shell_exec('cat /dev/null > ' . $path);
 		}
 		return true;
 	}
@@ -103,6 +110,9 @@ class log {
 		if (file_exists($path) && strpos($_log, 'nginx.error') === false) {
 			unlink($path);
 		}
+		if (strpos($_log, 'nginx.error') !== false) {
+			shell_exec('cat /dev/null > ' . $path);
+		}
 		return true;
 	}
 
@@ -110,8 +120,10 @@ class log {
 		$logs = ls(dirname(__FILE__) . '/../../log/', '*');
 		foreach ($logs as $log) {
 			$path = dirname(__FILE__) . '/../../log/' . $log;
-			if (strpos($_log, 'nginx.error') === false && !is_dir($path)) {
+			if (strpos($log, 'nginx.error') === false && !is_dir($path)) {
 				unlink($path);
+			} else {
+				shell_exec('cat /dev/null > ' . $path);
 			}
 		}
 		return true;

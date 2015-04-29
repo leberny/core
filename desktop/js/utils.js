@@ -151,8 +151,9 @@ setInterval(function () {
     $("#md_reportBug").dialog({
         autoOpen: false,
         modal: true,
-        height: (jQuery(window).height() - 100),
-        width: ((jQuery(window).width() - 100) < 1500) ? (jQuery(window).width() - 50) : 1500,
+        height: 700,
+        width: 900,
+        position: {my: 'center', at: 'center bottom-10px', of: window},
         open: function () {
             $("body").css({overflow: 'hidden'})
         },
@@ -167,6 +168,7 @@ setInterval(function () {
         modal: true,
         height: (jQuery(window).height() - 100),
         width: ((jQuery(window).width() - 100) < 1500) ? (jQuery(window).width() - 50) : 1500,
+        position: {my: 'center', at: 'center bottom-10px', of: window},
         open: function () {
             $("body").css({overflow: 'hidden'});
         },
@@ -179,8 +181,8 @@ setInterval(function () {
         autoOpen: false,
         modal: true,
         height: (jQuery(window).height() - 100),
-        width: ((jQuery(window).width() - 100) < 1500) ? (jQuery(window).width() - 50) : 1500,
-        position: {my: 'center', at: 'center', of: window},
+        width: ((jQuery(window).width() - 50) < 1500) ? (jQuery(window).width() - 50) : 1500,
+        position: {my: 'center', at: 'center bottom-10px', of: window},
         open: function () {
             $("body").css({overflow: 'hidden'});
         },
@@ -194,7 +196,7 @@ setInterval(function () {
         modal: true,
         height: (jQuery(window).height() - 150),
         width: ((jQuery(window).width() - 150) < 1200) ? (jQuery(window).width() - 50) : 1200,
-        position: {my: 'center', at: 'center', of: window},
+        position: {my: 'center', at: 'center bottom-10px', of: window},
         open: function () {
             $("body").css({overflow: 'hidden'});
         },
@@ -236,8 +238,7 @@ setInterval(function () {
     });
 
     $('body').delegate('.bt_reportBug', 'click', function () {
-        $('#md_reportBug').load('index.php?v=d&modal=report.bug');
-        $('#md_reportBug').dialog('open');
+        $('#md_reportBug').load('index.php?v=d&modal=report.bug').dialog('open');
     });
 
     $(window).bind('beforeunload', function (e) {
@@ -287,6 +288,18 @@ setInterval(function () {
      $('#md_modal').dialog({title: "{{Evenement en temps réel}}"});
      $("#md_modal").load('index.php?v=d&modal=event.log').dialog('open');
  });
+
+    $('#bt_gotoDashboard').on('click',function(){
+        window.location.href = 'index.php?v=d&p=dashboard';
+    });
+
+    $('#bt_gotoView').on('click',function(){
+        window.location.href = 'index.php?v=d&p=view';
+    });
+
+    $('#bt_gotoPlan').on('click',function(){
+        window.location.href = 'index.php?v=d&p=plan';
+    });
 
     initPage();
 });

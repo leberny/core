@@ -76,9 +76,22 @@ try {
 	if (!file_exists($backup)) {
 		throw new Exception('Sauvegarde non trouvée.' . $backup);
 	}
+
+	try {
+		echo __("Mise à plat des droits...", __FILE__);
+		jeedom::cleanFileSytemRight();
+		echo __("OK\n", __FILE__);
+	} catch (Exception $e) {
+		echo __('***ERREUR*** ', __FILE__) . $e->getMessage();
+	}
+
 	$jeedom_dir = realpath(dirname(__FILE__) . '/../');
 
 	echo "Restauration de Jeedom avec le fichier : " . $backup . "\n";
+
+	echo "Sauvegarde du fichier de connexion à la base...";
+	@copy(dirname(__FILE__) . '/../core/config/common.config.php', '/tmp/common.config.php');
+	echo "OK\n";
 
 	echo "Nettoyage des anciens fichiers...";
 	$tmp = dirname(__FILE__) . '/../tmp/backup';
@@ -94,6 +107,7 @@ try {
 	if ($return_var != 0) {
 		throw new Exception('Impossible de décompresser l\'archive');
 	}
+	@unlink($tmp . '/core/config/apache_jeedom_dynamic_rules');
 	echo "OK\n";
 	if (!file_exists($tmp . "/DB_backup.sql")) {
 		throw new Exception('Impossible de trouver le fichier de sauvegarde de la base de données dans l\'archive : DB_backup.sql');
@@ -111,28 +125,41 @@ try {
 		DB::Prepare('DROP TABLE IF EXISTS `' . $table . '`', array(), DB::FETCH_TYPE_ROW);
 		echo "OK\n";
 	}
-	echo "Réactivation des contraintes...";
-	DB::Prepare("SET foreign_key_checks = 1", array(), DB::FETCH_TYPE_ROW);
-	echo "OK\n";
 
 	echo "Restauration de la base de donnees...";
 	system("mysql --host=" . $CONFIG['db']['host'] . " --user=" . $CONFIG['db']['username'] . " --password=" . $CONFIG['db']['password'] . " " . $CONFIG['db']['dbname'] . "  < " . $tmp . "/DB_backup.sql");
 	echo "OK\n";
 
-	echo "Restauration des fichiers...";
-	rcopy($tmp, dirname(__FILE__) . '/..', false);
-	rcopy($tmp . '/plugins', dirname(__FILE__) . '/../plugins', false);
+	echo "Réactivation des contraintes...";
+	try {
+		DB::Prepare("SET foreign_key_checks = 1", array(), DB::FETCH_TYPE_ROW);
+	} catch (Exception $e) {
+
+	}
 	echo "OK\n";
+
+	echo "Restauration des fichiers...";
+	if (!rcopy($tmp, dirname(__FILE__) . '/..', false, array('common.config.php'), true)) {
+		echo "NOK\n";
+	} else {
+		echo "OK\n";
+	}
+
+	if (!file_exists(dirname(__FILE__) . '/../core/config/common.config.php')) {
+		echo "Fichier de connexion a la base absent, restauration...";
+		copy('/tmp/common.config.php', dirname(__FILE__) . '/../core/config/common.config.php');
+		echo "OK\n";
+	}
 
 	if (!file_exists($jeedom_dir . '/install')) {
 		mkdir($jeedom_dir . '/install');
-		exec('cd ' . $jeedom_dir . '/install;wget http://git.jeedom.fr/jeedom/core/raw/stable/install/backup.php;wget http://git.jeedom.fr/jeedom/core/raw/stable/install/install.php;wget http://git.jeedom.fr/jeedom/core/raw/stable/install/restore.php');
+		exec('cd ' . $jeedom_dir . '/install;wget https://raw.githubusercontent.com/jeedom/core/master/install/backup.php;wget https://raw.githubusercontent.com/jeedom/core/master/install/install.php;wget https://raw.githubusercontent.com/jeedom/core/master/install/restore.php');
 	}
 
 	foreach (plugin::listPlugin(true) as $plugin) {
 		$plugin_id = $plugin->getId();
 		if (method_exists($plugin_id, 'restore')) {
-			echo 'Restauration specifique du plugin...' . $plugin_id . '...';
+			echo 'Restauration specifique du plugin ' . $plugin_id . '...';
 			if (file_exists($tmp . '/plugin_backup/' . $plugin_id)) {
 				$plugin_id::restore($tmp . '/plugin_backup/' . $plugin_id);
 			}

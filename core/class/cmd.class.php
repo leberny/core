@@ -70,15 +70,15 @@ class cmd {
 			'id' => $_id,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        WHERE id=:id';
+		FROM cmd
+		WHERE id=:id';
 		return self::cast(DB::Prepare($sql, $values, DB::FETCH_TYPE_ROW, PDO::FETCH_CLASS, __CLASS__));
 	}
 
 	public static function all() {
 		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        ORDER BY id';
+		FROM cmd
+		ORDER BY id';
 		$results = DB::Prepare($sql, array(), DB::FETCH_TYPE_ALL);
 		$return = array();
 		foreach ($results as $result) {
@@ -89,22 +89,22 @@ class cmd {
 
 	public static function allHistoryCmd($_notEventOnly = false) {
 		$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-        FROM cmd c
-        INNER JOIN eqLogic el ON c.eqLogic_id=el.id
-        INNER JOIN object ob ON el.object_id=ob.id
-        WHERE isHistorized=1
-        AND type=\'info\'';
+		FROM cmd c
+		INNER JOIN eqLogic el ON c.eqLogic_id=el.id
+		INNER JOIN object ob ON el.object_id=ob.id
+		WHERE isHistorized=1
+		AND type=\'info\'';
 		if ($_notEventOnly) {
 			$sql .= ' AND eventOnly=0';
 		}
 		$sql .= ' ORDER BY ob.name,el.name,c.name';
 		$result1 = self::cast(DB::Prepare($sql, array(), DB::FETCH_TYPE_ALL, PDO::FETCH_CLASS, __CLASS__));
 		$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-        FROM cmd c
-        INNER JOIN eqLogic el ON c.eqLogic_id=el.id
-        WHERE el.object_id IS NULL
-        AND isHistorized=1
-        AND type=\'info\'';
+		FROM cmd c
+		INNER JOIN eqLogic el ON c.eqLogic_id=el.id
+		WHERE el.object_id IS NULL
+		AND isHistorized=1
+		AND type=\'info\'';
 		if ($_notEventOnly) {
 			$sql .= ' AND eventOnly=0';
 		}
@@ -118,8 +118,8 @@ class cmd {
 			'eqLogic_id' => $_eqLogic_id,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        WHERE eqLogic_id=:eqLogic_id';
+		FROM cmd
+		WHERE eqLogic_id=:eqLogic_id';
 		if ($_type != null) {
 			$values['type'] = $_type;
 			$sql .= ' AND `type`=:type';
@@ -136,8 +136,8 @@ class cmd {
 			'logicalId' => $_logical_id,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        WHERE logicalId=:logicalId';
+		FROM cmd
+		WHERE logicalId=:logicalId';
 		if ($_type != null) {
 			$values['type'] = $_type;
 			$sql .= ' AND `type`=:type';
@@ -151,8 +151,8 @@ class cmd {
 			'configuration' => '%' . $_configuration . '%',
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        WHERE configuration LIKE :configuration';
+		FROM cmd
+		WHERE configuration LIKE :configuration';
 		if ($_eqType != null) {
 			$values['eqType'] = $_eqType;
 			$sql .= ' AND eqType=:eqType ';
@@ -167,8 +167,8 @@ class cmd {
 			'eqLogic_id' => $_eqLogic_id,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        WHERE eqLogic_id=:eqLogic_id';
+		FROM cmd
+		WHERE eqLogic_id=:eqLogic_id';
 		if ($_type != null) {
 			$values['type'] = $_type;
 			$sql .= ' AND type=:type ';
@@ -182,8 +182,8 @@ class cmd {
 			'template' => '%' . $_template . '%',
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        WHERE template LIKE :template';
+		FROM cmd
+		WHERE template LIKE :template';
 		if ($_eqType != null) {
 			$values['eqType'] = $_eqType;
 			$sql .= ' AND eqType=:eqType ';
@@ -206,9 +206,9 @@ class cmd {
 			'logicalId' => $_logicalId,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        WHERE eqLogic_id=:eqLogic_id
-        AND logicalId=:logicalId';
+		FROM cmd
+		WHERE eqLogic_id=:eqLogic_id
+		AND logicalId=:logicalId';
 		if ($_multiple) {
 			return self::cast(DB::Prepare($sql, $values, DB::FETCH_TYPE_ALL, PDO::FETCH_CLASS, __CLASS__));
 		}
@@ -223,20 +223,20 @@ class cmd {
 
 		if ($_onlyEnable) {
 			$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-        FROM cmd c
-        INNER JOIN eqLogic el ON c.eqLogic_id=el.id
-        WHERE ( value=:value OR value LIKE :search)
-        AND el.isEnable=1
-        AND c.id!=:value';
+			FROM cmd c
+			INNER JOIN eqLogic el ON c.eqLogic_id=el.id
+			WHERE ( value=:value OR value LIKE :search)
+			AND el.isEnable=1
+			AND c.id!=:value';
 			if ($_type != null) {
 				$values['type'] = $_type;
 				$sql .= ' AND c.type=:type ';
 			}
 		} else {
 			$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
-        FROM cmd
-        WHERE ( value=:value OR value LIKE :search)
-        AND id!=:value';
+			FROM cmd
+			WHERE ( value=:value OR value LIKE :search)
+			AND id!=:value';
 			if ($_type != null) {
 				$values['type'] = $_type;
 				$sql .= ' AND type=:type ';
@@ -252,11 +252,11 @@ class cmd {
 			'cmd_name' => $_cmd_name,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-        FROM cmd c
-        INNER JOIN eqLogic el ON c.eqLogic_id=el.id
-        WHERE c.name=:cmd_name
-        AND el.name=:eqLogic_name
-        AND el.eqType_name=:eqType_name';
+		FROM cmd c
+		INNER JOIN eqLogic el ON c.eqLogic_id=el.id
+		WHERE c.name=:cmd_name
+		AND el.name=:eqLogic_name
+		AND el.eqType_name=:eqType_name';
 		return self::cast(DB::Prepare($sql, $values, DB::FETCH_TYPE_ROW, PDO::FETCH_CLASS, __CLASS__));
 	}
 
@@ -266,9 +266,9 @@ class cmd {
 			'cmd_name' => $_cmd_name,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-        FROM cmd c
-        WHERE c.name=:cmd_name
-        AND c.eqLogic_id=:eqLogic_id';
+		FROM cmd c
+		WHERE c.name=:cmd_name
+		AND c.eqLogic_id=:eqLogic_id';
 		return self::cast(DB::Prepare($sql, $values, DB::FETCH_TYPE_ROW, PDO::FETCH_CLASS, __CLASS__));
 	}
 
@@ -280,20 +280,20 @@ class cmd {
 
 		if ($_object_name == __('Aucun', __FILE__)) {
 			$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-            FROM cmd c
-            INNER JOIN eqLogic el ON c.eqLogic_id=el.id
-            WHERE c.name=:cmd_name
-            AND el.name=:eqLogic_name
-            AND el.object_id IS NULL';
+			FROM cmd c
+			INNER JOIN eqLogic el ON c.eqLogic_id=el.id
+			WHERE c.name=:cmd_name
+			AND el.name=:eqLogic_name
+			AND el.object_id IS NULL';
 		} else {
 			$values['object_name'] = $_object_name;
 			$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-            FROM cmd c
-            INNER JOIN eqLogic el ON c.eqLogic_id=el.id
-            INNER JOIN object ob ON el.object_id=ob.id
-            WHERE c.name=:cmd_name
-            AND el.name=:eqLogic_name
-            AND ob.name=:object_name';
+			FROM cmd c
+			INNER JOIN eqLogic el ON c.eqLogic_id=el.id
+			INNER JOIN object ob ON el.object_id=ob.id
+			WHERE c.name=:cmd_name
+			AND el.name=:eqLogic_name
+			AND ob.name=:object_name';
 		}
 		return self::cast(DB::Prepare($sql, $values, DB::FETCH_TYPE_ROW, PDO::FETCH_CLASS, __CLASS__));
 	}
@@ -304,11 +304,11 @@ class cmd {
 			'cmd_name' => $_cmd_name,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-        FROM cmd c
-        INNER JOIN eqLogic el ON c.eqLogic_id=el.id
-        INNER JOIN object ob ON el.object_id=ob.id
-        WHERE c.name=:cmd_name
-        AND ob.name=:object_name';
+		FROM cmd c
+		INNER JOIN eqLogic el ON c.eqLogic_id=el.id
+		INNER JOIN object ob ON el.object_id=ob.id
+		WHERE c.name=:cmd_name
+		AND ob.name=:object_name';
 		return self::cast(DB::Prepare($sql, $values, DB::FETCH_TYPE_ROW, PDO::FETCH_CLASS, __CLASS__));
 	}
 
@@ -317,8 +317,8 @@ class cmd {
 			'type' => $_type,
 		);
 		$sql = 'SELECT ' . DB::buildField(__CLASS__, 'c') . '
-        FROM cmd c
-        WHERE c.type=:type';
+		FROM cmd c
+		WHERE c.type=:type';
 		if ($_subType != '') {
 			$values['subtype'] = $_subType;
 			$sql .= ' AND c.subtype=:subtype';
@@ -428,7 +428,7 @@ class cmd {
 		return $cmd;
 	}
 
-	public static function cmdToValue($_input) {
+	public static function cmdToValue($_input, $_quote = false) {
 		if (is_object($_input)) {
 			$reflections = array();
 			$uuid = spl_object_hash($_input);
@@ -440,14 +440,14 @@ class cmd {
 			foreach ($properties as $property) {
 				$property->setAccessible(true);
 				$value = $property->getValue($_input);
-				$property->setValue($_input, self::cmdToValue($value));
+				$property->setValue($_input, self::cmdToValue($value, $_quote));
 				$property->setAccessible(false);
 			}
 			return $_input;
 		}
 		if (is_array($_input)) {
 			foreach ($_input as $key => $value) {
-				$_input[$key] = self::cmdToValue($value);
+				$_input[$key] = self::cmdToValue($value, $_quote);
 			}
 			return $_input;
 		}
@@ -457,7 +457,7 @@ class cmd {
 			if (is_numeric($cmd_id)) {
 				$cmd = self::byId($cmd_id);
 				if (is_object($cmd) && $cmd->getType() == 'info') {
-					$cmd_value = $cmd->execCmd();
+					$cmd_value = $cmd->execCmd(null, 1, true, $_quote);
 					if ($cmd->getSubtype() == "string" && substr($cmd_value, 0, 1) != '"' && substr($cmd_value, -1) != '"') {
 						$cmd_value = '"' . $cmd_value . '"';
 					}
@@ -470,7 +470,7 @@ class cmd {
 
 	public static function allType() {
 		$sql = 'SELECT distinct(type) as type
-        FROM cmd';
+		FROM cmd';
 		return DB::Prepare($sql, array(), DB::FETCH_TYPE_ALL);
 	}
 
@@ -487,7 +487,7 @@ class cmd {
 
 	public static function allUnite() {
 		$sql = 'SELECT distinct(unite) as unite
-        FROM cmd';
+		FROM cmd';
 		return DB::Prepare($sql, array(), DB::FETCH_TYPE_ALL);
 	}
 
@@ -511,7 +511,9 @@ class cmd {
 			if (!isset($return[$informations[1]][$informations[2]])) {
 				$return[$informations[1]][$informations[2]] = array();
 			}
-			$return[$informations[1]][$informations[2]][] = array('name' => $informations[3]);
+			if (isset($informations[3])) {
+				$return[$informations[1]][$informations[2]][] = array('name' => $informations[3]);
+			}
 		}
 		foreach (plugin::listPlugin(true) as $plugin) {
 			$path = dirname(__FILE__) . '/../../plugins/' . $plugin->getId() . '/core/template/' . $_version;
@@ -539,19 +541,49 @@ class cmd {
 		}
 	}
 
+	public static function cmdAlert($_options) {
+		$cmd = cmd::byId($_options['cmd_id']);
+		if (!is_object($cmd)) {
+			return;
+		}
+		$value = $cmd->execCmd();
+		$check = jeedom::evaluateExpression($value . $cmd->getConfiguration('jeedomCheckCmdOperator') . $cmd->getConfiguration('jeedomCheckCmdTest'));
+		if ($check == 1 || $check || $check == '1') {
+			$cmd->executeAlertCmdAction();
+		}
+	}
+
 	/*     * *********************Méthodes d'instance************************* */
 
-	public function formatValue($_value) {
-		if (trim($_value) == '' && $_value !== false) {
+	public function formatValue($_value, $_quote = false) {
+		if (trim($_value) == '' && $_value !== false && $_value !== 0) {
 			return '';
 		}
+
 		$_value = trim(trim($_value), '"');
-		if (@strpos('error', strtolower($_value)) !== false) {
+		if (@strpos(strtolower($_value), 'error::') !== false) {
 			return $_value;
 		}
 		if ($this->getType() == 'info') {
 			switch ($this->getSubType()) {
+				case 'string':
+					if ($_quote) {
+						return '"' . $_value . '"';
+					}
+					return $_value;
+				case 'other':
+					if ($_quote) {
+						return '"' . $_value . '"';
+					}
+					return $_value;
 				case 'binary':
+					if ($this->getConfiguration('calculValueOffset') != '') {
+						try {
+							$_value = evaluate(str_replace('#value#', $_value, $this->getConfiguration('calculValueOffset')));
+						} catch (Exception $ex) {
+
+						}
+					}
 					$value = strtolower($_value);
 					if ($value == 'on' || $value == 'high' || $value == 'true' || $value === true) {
 						return 1;
@@ -646,7 +678,7 @@ class cmd {
 	 * @return command result
 	 * @throws Exception
 	 */
-	public function execCmd($_options = null, $cache = 1, $_sendNodeJsEvent = true) {
+	public function execCmd($_options = null, $cache = 1, $_sendNodeJsEvent = true, $_quote = false) {
 		if ($this->getEventOnly() == 1) {
 			$cache = 2;
 		}
@@ -683,7 +715,7 @@ class cmd {
 			if ($this->getType() == 'action') {
 				log::add('event', 'event', __('Execution de la commande ', __FILE__) . $this->getHumanName() . __(' avec les paramètres ', __FILE__) . str_replace(array("\n", '  ', 'Array'), '', print_r($options, true)));
 			}
-			$value = $this->formatValue($this->execute($options));
+			$value = $this->formatValue($this->execute($options), $_quote);
 		} catch (Exception $e) {
 			//Si impossible de contacter l'équipement
 			$type = $eqLogic->getEqType_name();
@@ -771,7 +803,7 @@ class cmd {
 				}
 				if ($template == '' && config::byKey('active', 'widget') == 1 && config::byKey('market::autoInstallMissingWidget') == 1) {
 					try {
-						$market = market::byLogicalId(str_replace('cmd.', '', $version . '.' . $template_name));
+						$market = market::byLogicalIdAndType(str_replace('cmd.', '', $version . '.' . $template_name), 'widget');
 						if (is_object($market)) {
 							$market->install();
 							$template = getTemplate('core', $version, $template_name, 'widget');
@@ -827,8 +859,13 @@ class cmd {
 			$replace['#state#'] = '';
 			$replace['#tendance#'] = '';
 			$replace['#state#'] = $this->execCmd(null, $_cache);
-			if ($this->getSubType() == 'binary' && $this->getDisplay('invertBinary') == 1) {
-				$replace['#state#'] = ($replace['#state#'] == 1) ? 0 : 1;
+			if (strpos($replace['#state#'], 'error::') !== false) {
+				$template = getTemplate('core', $version, 'cmd.error');
+				$replace['#state#'] = str_replace('error::', '', $replace['#state#']);
+			} else {
+				if ($this->getSubType() == 'binary' && $this->getDisplay('invertBinary') == 1) {
+					$replace['#state#'] = ($replace['#state#'] == 1) ? 0 : 1;
+				}
 			}
 			$replace['#collectDate#'] = $this->getCollectDate();
 			if ($this->getIsHistorized() == 1) {
@@ -913,13 +950,17 @@ class cmd {
 		if (trim($_value) === '' || $_loop > 4 || $this->getType() != 'info') {
 			return;
 		}
-		$collectDate = ($this->getCollectDate() != '') ? strtotime($this->getCollectDate()) : '';
+		$collectDate = ($this->getCollectDate() != '') ? $this->getCollectDate() : date('Y-m-d H:i:s');
 		$eqLogic = $this->getEqLogic();
 		if (!is_object($eqLogic) || $eqLogic->getIsEnable() == 0) {
 			return;
 		}
 		$_loop++;
 		$value = $this->formatValue($_value);
+		if ($this->getConfiguration('onlyChangeEvent', 0) == 1 && $this->getEventOnly() == 1 && $value == $this->execCmd(null, 2)) {
+			return;
+		}
+		$this->setCollectDate($collectDate);
 		log::add('event', 'event', __('Evenement sur la commande ', __FILE__) . $this->getHumanName() . __(' valeur : ', __FILE__) . $_value);
 		cache::set('cmd' . $this->getId(), $value, $this->getCacheLifetime(), array('collectDate' => $this->getCollectDate()));
 		scenario::check($this);
@@ -944,10 +985,12 @@ class cmd {
 		}
 		listener::check($this->getId(), $value);
 		if (strpos($_value, 'error') === false) {
-			$eqLogic->setStatus('lastCommunication', date('Y-m-d H:i:s'));
+			$eqLogic->setStatus('lastCommunication', $this->getCollectDate());
 			$this->addHistoryValue($value, $this->getCollectDate());
 		}
 		$this->checkReturnState($value);
+		$this->checkCmdAlert($_value);
+		$this->pushUrl($_value);
 	}
 
 	public function checkReturnState($_value) {
@@ -965,6 +1008,94 @@ class cmd {
 			$cron->setSchedule($schedule);
 			$cron->setLastRun(date('Y-m-d H:i:s'));
 			$cron->save();
+		}
+	}
+
+	public function checkCmdAlert($_value) {
+		if ($this->getConfiguration('jeedomCheckCmdOperator') == '' || $this->getConfiguration('jeedomCheckCmdTest') == '' || $this->getConfiguration('jeedomCheckCmdTime') == '' || is_nan($this->getConfiguration('jeedomCheckCmdTime'))) {
+			return;
+		}
+		$check = jeedom::evaluateExpression($_value . $this->getConfiguration('jeedomCheckCmdOperator') . $this->getConfiguration('jeedomCheckCmdTest'));
+		if ($check == 1 || $check || $check == '1') {
+			if ($this->getConfiguration('jeedomCheckCmdTime') == 0) {
+				$this->executeAlertCmdAction();
+				return;
+			}
+			$cron = cron::byClassAndFunction('cmd', 'cmdAlert', array('cmd_id' => intval($this->getId())));
+			if (!is_object($cron)) {
+				$cron = new cron();
+			}
+			$cron->setClass('cmd');
+			$cron->setFunction('cmdAlert');
+			$cron->setOnce(1);
+			$cron->setOption(array('cmd_id' => intval($this->getId())));
+			$next = strtotime('+ ' . ($this->getConfiguration('jeedomCheckCmdTime') + 1) . ' minutes ' . date('Y-m-d H:i:s'));
+			$schedule = date('i', $next) . ' ' . date('H', $next) . ' ' . date('d', $next) . ' ' . date('m', $next) . ' * ' . date('Y', $next);
+			$cron->setSchedule($schedule);
+			$cron->setLastRun(date('Y-m-d H:i:s'));
+			$cron->save();
+		} else {
+			$cron = cron::byClassAndFunction('cmd', 'cmdAlert', array('cmd_id' => intval($this->getId())));
+			if (is_object($cron)) {
+				$cron->remove();
+			}
+		}
+	}
+
+	public function executeAlertCmdAction() {
+		if ($this->getConfiguration('jeedomCheckCmdActionType') == 'cmd') {
+			$cmd = cmd::byId(str_replace('#', '', $this->getConfiguration('jeedomCheckCmdCmdActionId')));
+			if (!is_object($cmd)) {
+				return;
+			}
+			$cmd->execCmd($this->getConfiguration('jeedomCheckCmdCmdActionOption'));
+		}
+		if ($this->getConfiguration('jeedomCheckCmdActionType') == 'scenario') {
+			$scenario = scenario::byId($this->getConfiguration('jeedomCheckCmdScenarioActionId'));
+			if (!is_object($scenario)) {
+				return;
+			}
+			switch ($this->getOptions('jeedomCheckCmdScenarioActionMode')) {
+				case 'start':
+					$scenario->launch(false, __('Lancement direct provoqué par le scénario  : ', __FILE__) . $this->getHumanName());
+					break;
+				case 'stop':
+					$scenario->stop();
+					break;
+				case 'deactivate':
+					$scenario->setIsActive(0);
+					$scenario->save();
+					break;
+				case 'activate':
+					$scenario->setIsActive(1);
+					$scenario->save();
+					break;
+			}
+		}
+	}
+
+	public function pushUrl($_value) {
+		$url = $this->getConfiguration('jeedomPushUrl');
+		if ($url == '') {
+			$url = config::byKey('cmdPushUrl');
+		}
+		if ($url == '') {
+			return;
+		}
+		$replace = array(
+			'#value#' => $_value,
+			'#cmd_name#' => $this->getName(),
+			'#cmd_id#' => $this->getId(),
+			'#humanname#' => $this->getHumanName(),
+		);
+		$url = str_replace(array_keys($replace), $replace, $url);
+		log::add('event', 'event', __('Appels de l\'url de push pour la commande ', __FILE__) . $this->getHumanName() . ' : ' . $url);
+		$http = new com_http($url);
+		$http->setLogError(false);
+		try {
+			$http->exec();
+		} catch (Exception $e) {
+			log::add('cmd', 'error', __('Erreur push sur : ', __FILE__) . $url . ' => ' . $e->getMessage());
 		}
 	}
 
@@ -1105,14 +1236,7 @@ class cmd {
 					break;
 			}
 		}
-		if (config::byKey('market::returnLink') != '' && config::byKey('market::allowDNS')) {
-			return config::byKey('market::returnLink') . '&url=' . urlencode($url);
-		}
-		if (config::byKey('externalAddr') != '') {
-			return config::byKey('externalProtocol') . config::byKey('externalAddr') . ':' . config::byKey('externalPort', 'core', 80) . config::byKey('externalComplement') . $url;
-		} else {
-			return config::byKey('internalProtocol') . config::byKey('internalAddr') . ':' . config::byKey('internalPort', 'core', 80) . config::byKey('internalComplement') . $url;
-		}
+		return network::getNetworkAccess('external') . $url;
 	}
 
 	/*     * **********************Getteur Setteur*************************** */

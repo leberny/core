@@ -232,12 +232,13 @@ class jeeNetwork {
 			$this->handshake();
 		} catch (Exception $e) {
 			$old_ip = $this->getIp();
-			if (strpos($this->getIp(), '/jeedom') === false) {
+			if ($this->getConfiguration('addrComplement') != '/jeedom') {
 				try {
-					$this->setIp($this->getIp() . '/jeedom');
+					$this->setIp($this->getIp());
+					$this->setConfiguration('addrComplement', '/jeedom');
 					$this->handshake();
 				} catch (Exception $e) {
-					$this->setIp($old_ip);
+					$this->setConfiguration('addrComplement', '');
 					DB::save($this, true);
 					throw $e;
 				}
@@ -260,7 +261,7 @@ class jeeNetwork {
 		$jsonrpc = $this->getJsonRpc();
 		$params = array(
 			'apikey_master' => config::byKey('api'),
-			'address' => config::byKey('internalProtocol') . config::byKey('internalAddr') . ':' . config::byKey('internalPort', 'core', 80) . config::byKey('internalComplement'),
+			'address' => network::getNetworkAccess('internal'),
 			'slave_ip' => $this->getRealIp(),
 			'slave_id' => $this->getId(),
 		);
@@ -269,8 +270,10 @@ class jeeNetwork {
 			$this->setStatus('ok');
 			$this->setPlugin($result['plugin']);
 			$this->setConfiguration('nbUpdate', $result['nbUpdate']);
+			$this->setConfiguration('url', $result['jeedom::url']);
 			$this->setConfiguration('version', $result['version']);
 			$this->setConfiguration('auiKey', $result['auiKey']);
+			$this->setConfiguration('ngrok::port', $result['ngrok::port']);
 			$this->setConfiguration('lastCommunication', date('Y-m-d H:i:s'));
 			if ($this->getConfiguration('nbMessage') != $result['nbMessage'] && $result['nbMessage'] > 0) {
 				log::add('jeeNetwork', 'error', __('Le jeedom esclave : ', __FILE__) . $this->getName() . __(' a de nouveaux messages : ', __FILE__) . $result['nbMessage']);
@@ -328,7 +331,7 @@ class jeeNetwork {
 			return '';
 		}
 		$jsonrpc = $this->getJsonRpc();
-		if (!$jsonrpc->sendRequest('jeeNetwork::update', array())) {
+		if (!$jsonrpc->sendRequest('update::update', array())) {
 			throw new Exception($jsonrpc->getError(), $jsonrpc->getErrorCode());
 		}
 	}
@@ -338,7 +341,7 @@ class jeeNetwork {
 			return '';
 		}
 		$jsonrpc = $this->getJsonRpc();
-		if ($jsonrpc->sendRequest('jeeNetwork::checkUpdate', array())) {
+		if ($jsonrpc->sendRequest('update::checkUpdate', array())) {
 			$this->save();
 		} else {
 			throw new Exception($jsonrpc->getError(), $jsonrpc->getErrorCode());
@@ -351,7 +354,7 @@ class jeeNetwork {
 			'plugin_id' => $_plugin_id,
 			'version' => $_version,
 		);
-		if (!$jsonrpc->sendRequest('jeeNetwork::installPlugin', $params)) {
+		if (!$jsonrpc->sendRequest('plugin::install', $params)) {
 			throw new Exception($jsonrpc->getError(), $jsonrpc->getErrorCode());
 		}
 	}
@@ -431,7 +434,43 @@ class jeeNetwork {
 		if (!$jsonrpc->sendRequest('message::removeAll', array())) {
 			throw new Exception($jsonrpc->getError(), $jsonrpc->getErrorCode());
 		}
+		$this->save();
 		return true;
+	}
+
+	public function restartNgrok() {
+		if ($this->getStatus() == 'error') {
+			return '';
+		}
+		$jsonrpc = $this->getJsonRpc();
+		if (!$jsonrpc->sendRequest('network::restartNgrok', array())) {
+			throw new Exception($jsonrpc->getError(), $jsonrpc->getErrorCode());
+		}
+		$this->save();
+		return true;
+	}
+
+	public function stopNgrok() {
+		if ($this->getStatus() == 'error') {
+			return '';
+		}
+		$jsonrpc = $this->getJsonRpc();
+		if (!$jsonrpc->sendRequest('network::stopNgrok', array())) {
+			throw new Exception($jsonrpc->getError(), $jsonrpc->getErrorCode());
+		}
+		$this->save();
+		return true;
+	}
+
+	public function ngrokRun($_proto = 'https', $_port = 80, $_name = '') {
+		if ($this->getStatus() == 'error') {
+			return '';
+		}
+		$jsonrpc = $this->getJsonRpc();
+		if (!$jsonrpc->sendRequest('network::ngrokRun', array('proto' => $_proto, 'port' => $_port, 'name' => $_name))) {
+			throw new Exception($jsonrpc->getError(), $jsonrpc->getErrorCode());
+		}
+		return $jsonrpc->getResult();
 	}
 
 	public function restoreLocalBackup($_backup) {
@@ -487,7 +526,7 @@ class jeeNetwork {
 		if ($this->getIp() == '') {
 			throw new Exception(__('Aucune adresse IP renseignée pour : ', __FILE__) . $this->getName());
 		}
-		return new jsonrpcClient($this->getIp() . '/core/api/jeeApi.php', $this->getApikey());
+		return new jsonrpcClient($this->getIp() . $this->getConfiguration('addrComplement') . '/core/api/jeeApi.php', $this->getApikey());
 	}
 
 	public function getRealIp() {

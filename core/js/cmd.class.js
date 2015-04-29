@@ -209,10 +209,14 @@ jeedom.cmd.test = function(_params) {
                     });
                     break;
                     case 'slider':
+                    var slider = 50;
+                    if(isset(result.configuration) && isset(result.configuration.maxValue) && isset(result.configuration.minValue)){
+                        slider = (result.configuration.maxValue - result.configuration.minValue) / 2;
+                    }
                     jeedom.cmd.execute({
                         id: _params.id,
                         value: {
-                            slider: 50
+                            slider: slider
                         },
                         cache: 0,
                         error: function(error) {
@@ -492,6 +496,7 @@ jeedom.cmd.changeSubType = function(_cmd) {
                     }
                 } else {
                     for (var j in subtype[i]) {
+
                         var el = _cmd.find('.cmdAttr[data-l1key=' + i + '][data-l2key=' + j + ']');
                         if (el.attr('type') == 'checkbox' && el.parent().is('span')) {
                             el = el.parent();
@@ -523,14 +528,19 @@ jeedom.cmd.changeSubType = function(_cmd) {
             if (_cmd.find('.cmdAttr[data-l1key=type]').value() == 'action') {
                 _cmd.find('.cmdAttr[data-l1key=configuration][data-l2key=updateCmdId]').show();
                 _cmd.find('.cmdAttr[data-l1key=configuration][data-l2key=updateCmdToValue]').show();
-            }
-            _cmd.find('.cmdAttr[data-l1key=eventOnly]').trigger('change');
-            modifyWithoutSave = false;
-            if ('function' == typeof(initExpertMode)) {
-                initExpertMode();
-            }
+                _cmd.find('.cmdAttr[data-l1key=configuration][data-l2key=returnStateValue]').hide();
+                _cmd.find('.cmdAttr[data-l1key=configuration][data-l2key=returnStateTime]').hide();
+            }else{
+             _cmd.find('.cmdAttr[data-l1key=configuration][data-l2key=returnStateValue]').show();
+             _cmd.find('.cmdAttr[data-l1key=configuration][data-l2key=returnStateTime]').show();
+         }
+         _cmd.find('.cmdAttr[data-l1key=eventOnly]').trigger('change');
+         modifyWithoutSave = false;
+         if ('function' == typeof(initExpertMode)) {
+            initExpertMode();
         }
-    });
+    }
+});
 };
 
 jeedom.cmd.availableType = function() {

@@ -40,15 +40,29 @@ try {
 	require_once dirname(__FILE__) . '/../core/php/core.inc.php';
 
 	$crons = cron::all();
-	foreach ($crons as $cron) {
-		$c = new Cron\CronExpression($cron->getSchedule(), new Cron\FieldFactory);
-		try {
-			if (!$c->isDue()) {
-				$c->getNextRunDate();
+	if (is_array($crons)) {
+		if (class_exists('Cron\CronExpression')) {
+			foreach ($crons as $cron) {
+				$c = new Cron\CronExpression($cron->getSchedule(), new Cron\FieldFactory);
+				try {
+					if (!$c->isDue()) {
+						$c->getNextRunDate();
+					}
+				} catch (Exception $ex) {
+					$cron->remove();
+				}
 			}
-		} catch (Exception $ex) {
-			$cron->remove();
 		}
+	}
+
+	$cron = cron::byClassAndFunction('jeedom', 'persist');
+	if (is_object($cron)) {
+		$cron->remove();
+	}
+
+	$cron = cron::byClassAndFunction('plugin', 'cron');
+	if (is_object($cron)) {
+		$cron->remove();
 	}
 
 	$cron = cron::byClassAndFunction('plugin', 'cronDaily');
@@ -127,6 +141,9 @@ try {
 	}
 
 	cache::deleteBySearch('widgetHtml');
+	cache::deleteBySearch('cmdWidgetdashboard');
+	cache::deleteBySearch('cmdWidgetmobile');
+	cache::deleteBySearch('scenarioHtmldashboard');
 } catch (Exception $e) {
 	echo $e->getMessage();
 }

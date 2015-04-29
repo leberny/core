@@ -160,6 +160,27 @@ Paramètres:
 - int id
 - string state : [run,stop,enable,disable]
 
+==== API JSON datastore (variable)
+
+===== datastore::byTypeLinkIdKey
+Recupere la valeur d'une variable stocké dans le datastore
+
+Paramètres:
+
+- string type : type de la valeur stockée (pour les scénarios c'est scenario)
+- id linkId : -1 pour le global (valeur pour les scénarios par defaut, ou l'id du scénario)
+- string key : nom de la valeur
+
+===== datastore::save
+Enregistre la valeur d'une variable dans le datastore
+
+Paramètres:
+
+- string type : type de la valeur stockée (pour les scénarios c'est scenario)
+- id linkId : -1 pour le global (valeur pour les scénarios par defaut, ou l'id du scénario)
+- string key : nom de la valeur
+- mixte value : valeur à enregistrer
+
 ==== API JSON Message
 
 ===== message::all
@@ -177,8 +198,44 @@ Paramètres:
 
 - query (phrase de la demande)
 
+==== API JSON System
+
+===== jeeNetwork::halt
+Permet d'arreter Jeedom
+
+===== jeeNetwork::reboot
+Permet de redemarrer Jeedom
+
+
+==== API JSON plugin
+
+===== plugin::install
+Installation/Mise à jour d'un plugin donné
+
+Paramètres:
+
+- string plugin_id : nom du plugin (nom logique)
+
+===== plugin::remove
+Suppression d'un plugin donné
+
+Paramètres:
+
+- string plugin_id : nom du plugin (nom logique)
+
+==== API JSON update
+
+===== update::all
+Retour la liste de tous les composants installé, leur versions et les informations associées
+
+===== update::checkUpdate
+Permet de mettre de faire vérifier les mises à jour
+
+===== update::update
+Permet de mettre à jour Jeedom et tous les plugins
+
 ==== API JSON Exemples
-Voici un exemple d'utilisation de l'API. Pour l'exemple si dessous j'utilise cette class php qui permet de simplifier l'utilisation de l'api.
+Voici un exemple d'utilisation de l'API. Pour l'exemple si dessous j'utilise https://github.com/jeedom/core/blob/stable/core/class/jsonrpcClient.class.php[cette class php] qui permet de simplifier l'utilisation de l'api.
 
 Récupération de la liste des objets :
 

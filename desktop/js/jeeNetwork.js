@@ -18,13 +18,13 @@
     $('#div_alert').showAlert({message: '{{Suppression effectuée avec succès}}', level: 'success'});
 }
 
-$(".li_jeeNetwork").on('click', function (event) {
-    $.hideAlert();
-    $('#div_conf').show();
-    $('.li_jeeNetwork').removeClass('active');
-    $(this).addClass('active');
+$('#pre_logInfo').height($(window).height() - $('header').height() - $('footer').height() - 200);
+$('#pre_updateInfo').height($(window).height() - $('header').height() - $('footer').height() - 200);
+$('#pre_backupInfo').height($(window).height() - $('header').height() - $('footer').height() - 200);
+
+function loadInfoFromSlave(_id){
     jeedom.jeeNetwork.byId({
-        id: $(this).attr('data-jeeNetwork_id'),
+        id: _id,
         cache: false,
         error: function (error) {
             $('#div_alert').showAlert({message: error.message, level: 'danger'});
@@ -37,57 +37,107 @@ $(".li_jeeNetwork").on('click', function (event) {
                 plugin += '<span class="label label-info">' + data.plugin[i] + '</span> ';
             }
             if (isset(data.configuration) && isset(data.configuration.auiKey)) {
-                $('#bt_connectToSlave').attr('href', 'http://' + data.ip + '/index.php?v=d&auiKey=' + data.configuration.auiKey).show();
+                if(isset(data.configuration.url)){
+                    $('#bt_connectToSlave').attr('href', data.configuration.url + '/index.php?v=d&auiKey=' + data.configuration.auiKey).show();
+                }else{
+                    $('#bt_connectToSlave').attr('href', 'http://' + data.ip + '/index.php?v=d&auiKey=' + data.configuration.auiKey).show();
+                }
             } else {
                 $('#bt_connectToSlave').hide();
             }
             $('#div_pluginList').empty().append(plugin);
+            var jeeNetworkConfig = data;
+            jeedom.jeeNetwork.ngrokRun({
+                id: _id,
+                error: function (error) {
+                    $('#div_alert').showAlert({message: error.message, level: 'danger'});
+                },
+                success: function (data) {
+                    if(data == 0){
+                     $('#div_ngrokHttpStatus').html('<span class="label label-warning tooltips" title="{{Normale si vous n\'avez pas coché la case : Utiliser les DNS Jeedom}}">{{Arrêté}}</span>');
+                 }else{
+                   $('#div_ngrokHttpStatus').html('<span class="label label-success" style="font-size : 1em;">{{Démarré : }} <a href="' +init(jeeNetworkConfig.configuration.url)+ '" target="_blank" style="color:white;text-decoration: underline;">' +init(jeeNetworkConfig.configuration.url)+ '</a></span>');
+               }
+           }
+       });
+
+            jeedom.jeeNetwork.ngrokRun({
+                id: _id,
+                proto : 'tcp',
+                port : 22,
+                name : 'ssh',
+                error: function (error) {
+                    $('#div_alert').showAlert({message: error.message, level: 'danger'});
+                },
+                success: function (data) {
+                    if(data == 0){
+                     $('#div_ngrokSSHStatus').html('<span class="label label-warning tooltips" title="{{Normale si vous n\'avez pas coché la case : Rediriger le SSH}}">{{Arrêté}}</span>');
+                 }else{
+                    $('#div_ngrokSSHStatus').html('<span class="label label-success" style="font-size : 1em;">{{Démarré : }} dns.jeedom.com:' + init(jeeNetworkConfig.configuration['ngrok::port']) + '</span>');
+                 }
+             }
+         });
             modifyWithoutSave = false;
         }
     });
-    jeedom.jeeNetwork.loadConfig({
-     id: $(this).attr('data-jeeNetwork_id'),
-     configuration: $('#administration').getValues('.configKey')[0],
-     error: function (error) {
+jeedom.jeeNetwork.loadConfig({
+ id: _id,
+ configuration: $('#administration').getValues('.configKey')[0],
+ error: function (error) {
+    $('#div_alert').showAlert({message: error.message, level: 'danger'});
+},
+success: function (data) {
+    $('#administration').setValues(data, '.configKey');
+    modifyWithoutSave = false;
+}
+});
+jeedom.jeeNetwork.listLog({
+    id: _id,
+    error: function (error) {
         $('#div_alert').showAlert({message: error.message, level: 'danger'});
     },
     success: function (data) {
-        $('#administration').setValues(data, '.configKey');
-        modifyWithoutSave = false;
+        if (!$.isArray(data)) {
+            return;
+        }
+        var option = '';
+        for (var i in data) {
+            option += '<option>' + data[i] + '</option>';
+        }
+        $('#sel_logSlave').empty().append(option);
+        $('#sel_logSlave').trigger('change');
     }
 });
-    jeedom.jeeNetwork.listLog({
-        id: $(this).attr('data-jeeNetwork_id'),
-        error: function (error) {
-            $('#div_alert').showAlert({message: error.message, level: 'danger'});
-        },
-        success: function (data) {
-            if (!$.isArray(data)) {
-                return;
-            }
-            var option = '';
-            for (var i in data) {
-                option += '<option>' + data[i] + '</option>';
-            }
-            $('#sel_logSlave').empty().append(option);
+jeedom.jeeNetwork.listLocalSlaveBackup({
+    error: function (error) {
+        $('#div_alert').showAlert({message: error.message, level: 'danger'});
+    },
+    success: function (data) {
+        var option = '';
+        for (var i in data) {
+            option += '<option value="' + i + '">' + data[i] + '</option>';
         }
-    });
-    jeedom.jeeNetwork.listLocalSlaveBackup({
-        error: function (error) {
-            $('#div_alert').showAlert({message: error.message, level: 'danger'});
-        },
-        success: function (data) {
-            var option = '';
-            for (var i in data) {
-                option += '<option value="' + i + '">' + data[i] + '</option>';
-            }
-            $('#sel_backupList').empty().append(option);
-        }
-    });
+        $('#sel_backupList').empty().append(option);
+    }
+});
+
+
+
+}
+
+$(".li_jeeNetwork").on('click', function (event) {
+    $.hideAlert();
+    $('#pre_logInfo').empty();
+    $('#pre_backupInfo').empty();
+    $('#pre_updateInfo').empty();
+    $('#div_conf').show();
+    $('.li_jeeNetwork').removeClass('active');
+    $(this).addClass('active');
+    loadInfoFromSlave($('.li_jeeNetwork.active').attr('data-jeeNetwork_id'));
     return false;
 });
 
-$('#bt_showLog').on('click', function () {
+$('#sel_logSlave').on('change', function () {
     jeedom.jeeNetwork.getLog({
         id: $('.li_jeeNetwork.active').attr('data-jeeNetwork_id'),
         log: $('#sel_logSlave').value(),
@@ -101,17 +151,56 @@ $('#bt_showLog').on('click', function () {
             var log = '';
             var regex = /<br\s*[\/]?>/gi;
             for (var i in data.reverse()) {
-                log += data[i][0].replace(regex, "\n");
-                log += " - ";
-                log += data[i][1].replace(regex, "\n");
-                log += " - ";
+                if(data[i][0] != ''){
+                    log += data[i][0].replace(regex, "\n");
+                    log += " - ";
+                }
+                if(data[i][1] != ''){
+                    log += data[i][1].replace(regex, "\n");
+                    log += " - ";
+                }
                 log += data[i][2].replace(regex, "\n");
+                log = log.replace(/^\s+|\s+$/g, '');
                 log += "\n";
             }
             $('#pre_logInfo').text(log);
+            $('#pre_logInfo').scrollTop(999999999);
         }
     });
 });
+
+$('#bt_refreshLog').on('click', function () {
+    jeedom.jeeNetwork.getLog({
+        id: $('.li_jeeNetwork.active').attr('data-jeeNetwork_id'),
+        log: $('#sel_logSlave').value(),
+        error: function (error) {
+            $('#div_alert').showAlert({message: error.message, level: 'danger'});
+        },
+        success: function (data) {
+            if (!$.isArray(data)) {
+                return;
+            }
+            var log = '';
+            var regex = /<br\s*[\/]?>/gi;
+            for (var i in data.reverse()) {
+                if(data[i][0] != ''){
+                    log += data[i][0].replace(regex, "\n");
+                    log += " - ";
+                }
+                if(data[i][1] != ''){
+                    log += data[i][1].replace(regex, "\n");
+                    log += " - ";
+                }
+                log += data[i][2].replace(regex, "\n");
+                log = log.replace(/^\s+|\s+$/g, '');
+                log += "\n";
+            }
+            $('#pre_logInfo').text(log);
+            $('#pre_logInfo').scrollTop(999999999);
+        }
+    });
+});
+
 
 $('#bt_emptyLog').on('click', function () {
     jeedom.jeeNetwork.emptyLog({
@@ -244,6 +333,34 @@ $('#bt_updateSlave').on('click', function () {
     });
 });
 
+$('#bt_restartNgrok').on('click', function () {
+    $.hideAlert();
+    jeedom.jeeNetwork.restartNgrok({
+        id: $('.li_jeeNetwork.active').attr('data-jeeNetwork_id'),
+        error: function (error) {
+            $('#div_alert').showAlert({message: error.message, level: 'danger'});
+        },
+        success: function (data) {
+            $('.li_jeeNetwork.active').click();
+            $('#div_alert').showAlert({message: '{{Redemarrage eefectué avec succès}}', level: 'success'});
+        }
+    });
+});
+
+$('#bt_haltNgrok').on('click', function () {
+    $.hideAlert();
+    jeedom.jeeNetwork.stopNgrok({
+        id: $('.li_jeeNetwork.active').attr('data-jeeNetwork_id'),
+        error: function (error) {
+            $('#div_alert').showAlert({message: error.message, level: 'danger'});
+        },
+        success: function (data) {
+            $('.li_jeeNetwork.active').click();
+            $('#div_alert').showAlert({message: '{{Arret effectué avec succès}}', level: 'success'});
+        }
+    });
+});
+
 $('#bt_checkUpdateSlave').on('click', function () {
     $.hideAlert();
     jeedom.jeeNetwork.checkUpdate({
@@ -292,6 +409,7 @@ $('#bt_emptyMessage').on('click', function () {
         },
         success: function (data) {
             $('.li_jeeNetwork.active').click();
+            $('#pre_logInfo').empty();
             $('#div_alert').showAlert({message: '{{Les messages ont été correctement supprimés}}', level: 'success'});
         }
     });
@@ -328,7 +446,7 @@ $("#bt_saveJeeNetwork").on('click', function (event) {
             },
             success: function (data) {
                 modifyWithoutSave = false;
-                $('.li_jeeNetwork.active').click();
+                loadInfoFromSlave($('.li_jeeNetwork.active').attr('data-jeeNetwork_id'));
                 $('#div_alert').showAlert({message: '{{Sauvegarde effectuée avec succès}}', level: 'success'});
             }
         });
@@ -421,7 +539,7 @@ function getJeedomSlaveLog(_autoUpdate, _log,_el) {
                 if ($.trim(data.result[i][2].replace(regex, "\n")) == '[END ' + _log.toUpperCase() + ' SUCCESS]') {
                     _autoUpdate = 0;
                     $('#div_alert').showAlert({message: '{{L\'opération est réussie}}', level: 'success'});
-                    $("#bt_saveJeeNetwork").click();
+                    loadInfoFromSlave($('.li_jeeNetwork.active').attr('data-jeeNetwork_id'));
                 }
                 if ($.trim(data.result[i][2].replace(regex, "\n")) == '[END ' + _log.toUpperCase() + ' ERROR]') {
                     $('#div_alert').showAlert({message: '{{L\'opération a échoué}}', level: 'danger'});
@@ -429,6 +547,7 @@ function getJeedomSlaveLog(_autoUpdate, _log,_el) {
                 }
             }
             _el.text(log);
+            _el.scrollTop(_el.height() + 200000);
             if (init(_autoUpdate, 0) == 1) {
                 setTimeout(function () {
                     getJeedomSlaveLog(_autoUpdate, _log,_el)

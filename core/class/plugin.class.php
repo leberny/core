@@ -42,7 +42,7 @@ class plugin {
 
 	/*     * ***********************Méthodes statiques*************************** */
 
-	public static function byId($_id,$_translate = true) {
+	public static function byId($_id, $_translate = true) {
 		if (isset(self::$_cache[$_id])) {
 			return self::$_cache[$_id];
 		}
@@ -96,9 +96,9 @@ class plugin {
 			);
 		}
 
-		if($_translate){
-			$plugin->description = __($plugin->description,$_id);
-			$plugin->installation = __($plugin->installation,$_id);
+		if ($_translate) {
+			$plugin->description = __($plugin->description, $_id);
+			$plugin->installation = __($plugin->installation, $_id);
 		}
 
 		self::$_cache[$_id] = $plugin;
@@ -118,7 +118,7 @@ class plugin {
 		}
 	}
 
-	public static function listPlugin($_activateOnly = false, $_orderByCaterogy = false,$_translate = true) {
+	public static function listPlugin($_activateOnly = false, $_orderByCaterogy = false, $_translate = true) {
 		$listPlugin = array();
 		if ($_activateOnly) {
 			$sql = "SELECT plugin
@@ -128,7 +128,7 @@ class plugin {
 			$results = DB::Prepare($sql, array(), DB::FETCH_TYPE_ALL);
 			foreach ($results as $result) {
 				try {
-					$listPlugin[] = plugin::byId($result['plugin'],$_translate);
+					$listPlugin[] = plugin::byId($result['plugin'], $_translate);
 				} catch (Exception $e) {
 					log::add('plugin', 'error', $e->getMessage(), 'pluginNotFound::' . $result['plugin']);
 				}
@@ -140,7 +140,7 @@ class plugin {
 					$pathInfoPlugin = $rootPluginPath . '/' . $dirPlugin . '/plugin_info/info.xml';
 					if (file_exists($pathInfoPlugin)) {
 						try {
-							$listPlugin[] = plugin::byId($pathInfoPlugin,$_translate);
+							$listPlugin[] = plugin::byId($pathInfoPlugin, $_translate);
 						} catch (Exception $e) {
 							log::add('plugin', 'error', $e->getMessage(), 'pluginNotFound::' . $pathInfoPlugin);
 						}
@@ -225,7 +225,7 @@ class plugin {
 	}
 
 	public function setIsEnable($_state) {
-		if (version_compare(getVersion('jeedom'), $this->getRequire()) == -1 && $_state == 1) {
+		if (version_compare(jeedom::version(), $this->getRequire()) == -1 && $_state == 1) {
 			throw new Exception('Votre version de jeedom n\'est pas assez récente pour activer ce plugin');
 		}
 		$alreadyActive = config::byKey('active', $this->getId(), 0);
@@ -238,6 +238,8 @@ class plugin {
 		}
 		if ($_state == 0) {
 			foreach (eqLogic::byType($this->getId()) as $eqLogic) {
+				$eqLogic->setConfiguration('previousIsEnable', $eqLogic->getIsEnable());
+				$eqLogic->setConfiguration('previousIsVisible', $eqLogic->getIsVisible());
 				$eqLogic->setIsEnable(0);
 				$eqLogic->setIsVisible(0);
 				$eqLogic->save();
@@ -245,8 +247,8 @@ class plugin {
 		}
 		if ($alreadyActive == 0 && $_state == 1) {
 			foreach (eqLogic::byType($this->getId()) as $eqLogic) {
-				$eqLogic->setIsEnable(1);
-				$eqLogic->setIsVisible(1);
+				$eqLogic->setIsEnable($eqLogic->getConfiguration('previousIsEnable', 1));
+				$eqLogic->setIsVisible($eqLogic->getConfiguration('previousIsVisible', 1));
 				$eqLogic->save();
 			}
 		}
@@ -296,7 +298,7 @@ class plugin {
 	}
 
 	public function status() {
-		return market::getInfo($this->getId());
+		return market::getInfo(array('logicalId' => $this->getId(), 'type' => 'plugin'));
 	}
 
 	public function launch($_function) {
@@ -341,6 +343,10 @@ class plugin {
 			mkdir($dir, 0775, true);
 		}
 		file_put_contents($dir . '/' . $_language . '.json', json_encode($_translation, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+	}
+
+	public function getUpdate() {
+		return update::byTypeAndLogicalId('plugin', $this->getId());
 	}
 
 	/*     * **********************Getteur Setteur*************************** */

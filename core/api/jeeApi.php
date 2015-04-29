@@ -26,15 +26,24 @@ if (isset($argv)) {
 	}
 }
 if (trim(config::byKey('api')) == '') {
-	echo 'Vous n\'avez aucune clef API de configurer, veuillez d\'abord en générer une (Page Générale -> Administration -> Configuration';
-	log::add('jeeEvent', 'error', 'Vous n\'avez aucune clef API de configurer, veuillez d\'abord en générer une (Page Générale -> Administration -> Configuration');
+	echo 'Vous n\'avez aucune clé API configurée, veuillez d\'abord en générer une (Page Général -> Administration -> Configuration';
+	log::add('jeeEvent', 'error', 'Vous n\'avez aucune clé API configurée, veuillez d\'abord en générer une (Page Général -> Administration -> Configuration');
 	die();
 }
+
+if (init('type') == 'getApiKey') {
+	if (config::byKey('market::jeedom_apikey') == init('apikey')) {
+		market::validateTicket(init('ticket'));
+		echo config::byKey('api');
+	}
+	die();
+}
+
 if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 	try {
 		if (config::byKey('api') != init('apikey') && config::byKey('api') != init('api')) {
 			connection::failed();
-			throw new Exception('Clef API non valide, vous n\'etes pas autorisé à effectuer cette action (jeeApi). Demande venant de :' . getClientIp() . 'Clef API : ' . init('apikey') . init('api'));
+			throw new Exception('Clé API non valide, vous n\'êtes pas autorisé à effectuer cette action (jeeApi). Demande venant de :' . getClientIp() . 'Clé API : ' . init('apikey') . init('api'));
 		}
 		connection::success('api');
 		$type = init('type');
@@ -79,20 +88,20 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 			}
 			switch (init('action')) {
 				case 'start':
-					log::add('api', 'debug', 'Start scénario de : ' . $scenario->getHumanName());
-					$scenario->launch(false, __('Lancement provoque par un appel api ', __FILE__));
+					log::add('api', 'debug', 'Démarrage scénario de : ' . $scenario->getHumanName());
+					$scenario->launch(false, __('Exécution provoquée par un appel API ', __FILE__));
 					break;
 				case 'stop':
-					log::add('api', 'debug', 'Stop scénario de : ' . $scenario->getHumanName());
+					log::add('api', 'debug', 'Arrêt scénario de : ' . $scenario->getHumanName());
 					$scenario->stop();
 					break;
 				case 'deactivate':
-					log::add('api', 'debug', 'Activation scénario de : ' . $scenario->getHumanName());
+					log::add('api', 'debug', 'Désactivation scénario de : ' . $scenario->getHumanName());
 					$scenario->setIsActive(0);
 					$scenario->save();
 					break;
 				case 'activate':
-					log::add('api', 'debug', 'Désactivation scénario de : ' . $scenario->getHumanName());
+					log::add('api', 'debug', 'Activation scénario de : ' . $scenario->getHumanName());
 					$scenario->setIsActive(1);
 					$scenario->save();
 					break;
@@ -101,7 +110,7 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 			}
 			echo 'ok';
 		} else if ($type == 'message') {
-			log::add('api', 'debug', 'Demande api pour ajouter un message');
+			log::add('api', 'debug', 'Demande API pour ajouter un message');
 			message::add(init('category'), init('message'));
 		} else {
 			if (class_exists($type)) {
@@ -109,10 +118,10 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 					log::add('api', 'info', 'Appels de ' . $type . '::event()');
 					$type::event();
 				} else {
-					throw new Exception('Aucune methode correspondante : ' . $type . '::event()');
+					throw new Exception('Aucune méthode correspondante : ' . $type . '::event()');
 				}
 			} else {
-				throw new Exception('Aucune plugin correspondant : ' . $type);
+				throw new Exception('Aucun plugin correspondant : ' . $type);
 			}
 		}
 	} catch (Exception $e) {
@@ -132,17 +141,15 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 		}
 
 		if ($jsonrpc->getJsonrpc() != '2.0') {
-			throw new Exception('Requete invalide. Jsonrpc version invalide : ' . $jsonrpc->getJsonrpc(), -32001);
+			throw new Exception('Requête invalide. Version Jsonrpc invalide : ' . $jsonrpc->getJsonrpc(), -32001);
 		}
 
 		$params = $jsonrpc->getParams();
 
 		if (isset($params['apikey']) || isset($params['api'])) {
 			if (config::byKey('api') == '' || (config::byKey('api') != $params['apikey'] && config::byKey('api') != $params['api'])) {
-				if (config::byKey('market::jeedom_apikey') == '' || config::byKey('market::jeedom_apikey') != $params['apikey'] || $_SERVER['REMOTE_ADDR'] != '94.23.188.164') {
-					connection::failed();
-					throw new Exception('Clef API invalide', -32001);
-				}
+				connection::failed();
+				throw new Exception('Clé API invalide', -32001);
 			}
 		} else if (isset($params['username']) && isset($params['password'])) {
 			$user = user::connect($params['username'], $params['password']);
@@ -152,7 +159,7 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 			}
 		} else {
 			connection::failed();
-			throw new Exception('Aucune clef API ou nom d\'utilisateur', -32001);
+			throw new Exception('Aucune clé API ou nom d\'utilisateur', -32001);
 		}
 
 		connection::success('api');
@@ -175,15 +182,9 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 				$jsonrpc->makeSuccess('pong');
 			}
 
-			/*             * ***********************Get API Key********************************* */
-			if ($jsonrpc->getMethod() == 'getApiKey' && config::byKey('market::jeedom_apikey') == $params['apikey']) {
-				market::validateTicket($params['ticket']);
-				$jsonrpc->makeSuccess(config::byKey('api'));
-			}
-
 			/*             * ***********************Version********************************* */
 			if ($jsonrpc->getMethod() == 'version') {
-				$jsonrpc->makeSuccess(getVersion('jeedom'));
+				$jsonrpc->makeSuccess(jeedom::version());
 			}
 
 			/*             * ************************Plugin*************************** */
@@ -246,6 +247,22 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 					$return['eqLogics'][] = $eqLogic_return;
 				}
 				$jsonrpc->makeSuccess($return);
+			}
+
+			/*             * ************************datastore*************************** */
+
+			if ($jsonrpc->getMethod() == 'datastore::byTypeLinkIdKey') {
+				$jsonrpc->makeSuccess(dataStore::byTypeLinkIdKey($params['type'], $params['linkId'], $params['key']));
+			}
+
+			if ($jsonrpc->getMethod() == 'datastore::save') {
+				$dataStore = new dataStore();
+				$dataStore->setType($params['type']);
+				$dataStore->setKey($params['key']);
+				$dataStore->setValue($params['value']);
+				$dataStore->setLink_id($params['linkId']);
+				$dataStore->save();
+				$jsonrpc->makeSuccess('ok');
 			}
 
 			/*             * ************************Equipement*************************** */
@@ -323,7 +340,7 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 						$enableList[$cmd->getId()] = true;
 					}
 
-					//suppression des entrées non innexistante.
+					//suppression des entrées inexistante.
 					foreach ($dbList as $dbObject) {
 						if (!isset($enableList[$dbObject->getId()]) && !$dbObject->dontRemoveCmd()) {
 							$dbObject->remove();
@@ -457,7 +474,7 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 					$jsonrpc->makeSuccess($scenario->stop());
 				}
 				if ($params['state'] == 'run') {
-					$jsonrpc->makeSuccess($scenario->launch(false, __('Scenario lance sur appels API', __FILE__)));
+					$jsonrpc->makeSuccess($scenario->launch(false, __('Scénario exécuté sur appel API', __FILE__)));
 				}
 				if ($params['state'] == 'enable') {
 					$scenario->setIsActive(1);
@@ -467,7 +484,7 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 					$scenario->setIsActive(0);
 					$jsonrpc->makeSuccess($scenario->save());
 				}
-				throw new Exception('La paramètre "state" ne peut être vide et doit avoir pour valuer [run,stop,enable;disable]');
+				throw new Exception('La paramètre "state" ne peut être vide et doit avoir pour valeur [run,stop,enable;disable]');
 			}
 
 			/*             * ************************JeeNetwork*************************** */
@@ -483,10 +500,15 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 				$return = array(
 					'mode' => config::byKey('jeeNetwork::mode'),
 					'nbUpdate' => update::nbNeedUpdate(),
-					'version' => getVersion('jeedom'),
+					'version' => jeedom::version(),
 					'nbMessage' => message::nbMessage(),
 					'auiKey' => $auiKey,
+					'jeedom::url' => config::byKey('jeedom::url'),
+					'ngrok::port' => config::byKey('ngrok::port'),
 				);
+				if (!filter_var(network::getNetworkAccess('external', 'ip'), FILTER_VALIDATE_IP) && network::getNetworkAccess('external', 'ip') != '') {
+					$return['jeedom::url'] = network::getNetworkAccess('internal');
+				}
 				foreach (plugin::listPlugin(true) as $plugin) {
 					if ($plugin->getAllowRemote() == 1) {
 						$return['plugin'][] = $plugin->getId();
@@ -534,21 +556,9 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 				$jsonrpc->makeSuccess('ok');
 			}
 
-			if ($jsonrpc->getMethod() == 'jeeNetwork::installPlugin') {
-				$market = market::byId($params['plugin_id']);
-				if (!is_object($market)) {
-					throw new Exception(__('Impossible de trouver l\'objet associé : ', __FILE__) . $params['plugin_id']);
-				}
-				if (!isset($params['version'])) {
-					$params['version'] = 'stable';
-				}
-				$market->install($params['version']);
-				$jsonrpc->makeSuccess('ok');
-			}
-
 			if ($jsonrpc->getMethod() == 'jeeNetwork::receivedBackup') {
 				if (config::byKey('jeeNetwork::mode') == 'slave') {
-					throw new Exception(__('Seul un maitre peut recevoir un backup', __FILE__));
+					throw new Exception(__('Seul un maître peut recevoir une sauvegarde', __FILE__));
 				}
 				$jeeNetwork = jeeNetwork::byId($params['slave_id']);
 				if (!is_object($jeeNetwork)) {
@@ -564,7 +574,7 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 					mkdir($uploaddir);
 				}
 				if (!file_exists($uploaddir)) {
-					throw new Exception('Répertoire d\'upload non trouvé : ' . $uploaddir);
+					throw new Exception('Répertoire de téléversement non trouvé : ' . $uploaddir);
 				}
 				$_file = $_FILES['file'];
 				$extension = strtolower(strrchr($_file['name'], '.'));
@@ -572,11 +582,11 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 					throw new Exception('Extension du fichier non valide (autorisé .tar.gz, .tar et .gz) : ' . $extension);
 				}
 				if (filesize($_file['tmp_name']) > 50000000) {
-					throw new Exception('Le fichier est trop gros (miximum 50mo)');
+					throw new Exception('La taille du fichier est trop importante (maximum 50Mo)');
 				}
 				$uploadfile = $uploaddir . $jeeNetwork->getId() . '-' . $jeeNetwork->getName() . '-' . $jeeNetwork->getConfiguration('version') . '-' . date('Y-m-d_H\hi') . '.tar' . $extension;
 				if (!move_uploaded_file($_file['tmp_name'], $uploadfile)) {
-					throw new Exception('Impossible d\'uploader le fichier');
+					throw new Exception('Impossible de téléverser le fichier');
 				}
 				system('find ' . $uploaddir . $jeeNetwork->getId() . '*' . ' -mtime +' . config::byKey('backup::keepDays') . ' -print | xargs -r rm');
 				$jsonrpc->makeSuccess('ok');
@@ -584,7 +594,7 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 
 			if ($jsonrpc->getMethod() == 'jeeNetwork::restoreBackup') {
 				if (config::byKey('jeeNetwork::mode') != 'slave') {
-					throw new Exception(__('Seul un esclave peut restorer un backup', __FILE__));
+					throw new Exception(__('Seul un esclave peut restaurer une sauvegarde', __FILE__));
 				}
 				if (substr(config::byKey('backup::path'), 0, 1) != '/') {
 					$uploaddir = dirname(__FILE__) . '/../../' . config::byKey('backup::path');
@@ -595,7 +605,7 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 					mkdir($uploaddir);
 				}
 				if (!file_exists($uploaddir)) {
-					throw new Exception('Repertoire d\'upload non trouve : ' . $uploaddir);
+					throw new Exception('Repertoire de téléversement non trouvé : ' . $uploaddir);
 				}
 				$_file = $_FILES['file'];
 				$extension = strtolower(strrchr($_file['name'], '.'));
@@ -603,12 +613,12 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 					throw new Exception('Extension du fichier non valide (autorisé .tar.gz, .tar et .gz) : ' . $extension);
 				}
 				if (filesize($_file['tmp_name']) > 50000000) {
-					throw new Exception('Le fichier est trop gros (miximum 50mo)');
+					throw new Exception('La taille du fichier est trop importante (maximum 50Mo)');
 				}
-				$bakcup_name = 'backup-' . getVersion('jeedom') . '-' . date("d-m-Y-H\hi") . '.tar.gz';
+				$bakcup_name = 'backup-' . jeedom::version() . '-' . date("d-m-Y-H\hi") . '.tar.gz';
 				$uploadfile = $uploaddir . '/' . $bakcup_name;
 				if (!move_uploaded_file($_file['tmp_name'], $uploadfile)) {
-					throw new Exception('Impossible d\'uploader le fichier');
+					throw new Exception('Impossible de téléverser le fichier');
 				}
 				jeedom::restore($uploadfile, true);
 				$jsonrpc->makeSuccess('ok');
@@ -655,6 +665,90 @@ if ((init('apikey') != '' || init('api') != '') && init('type') != '') {
 			if ($jsonrpc->getMethod() == 'jeedom::getUsbMapping') {
 				$jsonrpc->makeSuccess(jeedom::getUsbMapping());
 			}
+
+			/*             * ************************Plugin*************************** */
+			if ($jsonrpc->getMethod() == 'plugin::install') {
+				$market = market::byId($params['plugin_id']);
+				if (!is_object($market)) {
+					throw new Exception(__('Impossible de trouver l\'objet associé : ', __FILE__) . $params['plugin_id']);
+				}
+				if (!isset($params['version'])) {
+					$params['version'] = 'stable';
+				}
+				$market->install($params['version']);
+				$jsonrpc->makeSuccess('ok');
+			}
+
+			if ($jsonrpc->getMethod() == 'plugin::remove') {
+				$market = market::byId($params['plugin_id']);
+				if (!is_object($market)) {
+					throw new Exception(__('Impossible de trouver l\'objet associé : ', __FILE__) . $params['plugin_id']);
+				}
+				if (!isset($params['version'])) {
+					$params['version'] = 'stable';
+				}
+				$market->remove();
+				$jsonrpc->makeSuccess('ok');
+			}
+
+			/*             * ************************Update*************************** */
+			if ($jsonrpc->getMethod() == 'update::all') {
+				$jsonrpc->makeSuccess(utils::o2a(update::all()));
+			}
+
+			if ($jsonrpc->getMethod() == 'update::update') {
+				jeedom::update('', 0);
+				$jsonrpc->makeSuccess('ok');
+			}
+
+			if ($jsonrpc->getMethod() == 'update::checkUpdate') {
+				update::checkAllUpdate();
+				$jsonrpc->makeSuccess('ok');
+			}
+
+			/*             * ************************Network*************************** */
+
+			if ($jsonrpc->getMethod() == 'network::restartNgrok') {
+				config::save('market::allowDNS', 1);
+				if (network::ngrok_run()) {
+					network::ngrok_stop();
+				}
+				network::ngrok_start();
+				if (config::byKey('market::redirectSSH') == 1) {
+					if (network::ngrok_run('tcp', 22, 'ssh')) {
+						network::ngrok_stop('tcp', 22, 'ssh');
+					}
+					network::ngrok_start('tcp', 22, 'ssh');
+				} else {
+					if (network::ngrok_run('tcp', 22, 'ssh')) {
+						network::ngrok_stop('tcp', 22, 'ssh');
+					}
+				}
+				$jsonrpc->makeSuccess();
+			}
+
+			if ($jsonrpc->getMethod() == 'network::stopNgrok') {
+				config::save('market::allowDNS', 0);
+				network::ngrok_stop();
+				if (config::byKey('market::redirectSSH') == 1) {
+					network::ngrok_stop('tcp', 22, 'ssh');
+				}
+				$jsonrpc->makeSuccess();
+			}
+
+			if ($jsonrpc->getMethod() == 'network::ngrokRun') {
+				if (!isset($params['proto'])) {
+					$params['proto'] = 'https';
+				}
+				if (!isset($params['port'])) {
+					$params['port'] = 80;
+				}
+				if (!isset($params['name'])) {
+					$params['name'] = '';
+				}
+				$jsonrpc->makeSuccess(network::ngrok_run($params['proto'], $params['port'], $params['name']));
+			}
+
 			/*             * ************************************************************************ */
 		}
 		throw new Exception('Aucune méthode correspondante : ' . $jsonrpc->getMethod(), -32500);

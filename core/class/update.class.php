@@ -42,23 +42,30 @@ class update {
 		if ($_findNewObject) {
 			self::findNewUpdateObject();
 		}
-		foreach (self::all($_filter) as $update) {
-			if ($update->getType() == 'core') {
-				if ($findCore) {
-					$update->remove();
-					continue;
-				}
-				$findCore = true;
-				$update->setType('core');
-				$update->setLogicalId('jeedom');
-				$update->setLocalVersion(getVersion('jeedom'));
-				$update->save();
-				$update->checkUpdate();
-			} else {
-				if ($update->getStatus() != 'hold') {
-					$marketObject['logical_id'][] = $update->getLogicalId();
-					$marketObject['version'][] = $update->getConfiguration('version', 'stable');
-					$marketObject[$update->getLogicalId()] = $update;
+		$updates = self::all($_filter);
+		if (is_array($updates)) {
+			foreach (self::all($_filter) as $update) {
+				if ($update->getType() == 'core') {
+					if ($findCore) {
+						$update->remove();
+						continue;
+					}
+					$findCore = true;
+					$update->setType('core');
+					$update->setLogicalId('jeedom');
+					if (method_exists('jeedom', 'version')) {
+						$update->setLocalVersion(jeedom::version());
+					} else {
+						$update->setLocalVersion(getVersion('jeedom'));
+					}
+					$update->save();
+					$update->checkUpdate();
+				} else {
+					if ($update->getStatus() != 'hold') {
+						$marketObject['logical_id'][] = array('logicalId' => $update->getLogicalId(), 'type' => $update->getType());
+						$marketObject['version'][] = $update->getConfiguration('version', 'stable');
+						$marketObject[$update->getType() . $update->getLogicalId()] = $update;
+					}
 				}
 			}
 		}
@@ -66,7 +73,11 @@ class update {
 			$update = new update();
 			$update->setType('core');
 			$update->setLogicalId('jeedom');
-			$update->setLocalVersion(getVersion('jeedom'));
+			if (method_exists('jeedom', 'version')) {
+				$update->setLocalVersion(jeedom::version());
+			} else {
+				$update->setLocalVersion(getVersion('jeedom'));
+			}
 			$update->save();
 			$update->checkUpdate();
 		}
@@ -128,6 +139,16 @@ class update {
 		return DB::Prepare($sql, $values, DB::FETCH_TYPE_ROW, PDO::FETCH_CLASS, __CLASS__);
 	}
 
+	public static function byStatus($_status) {
+		$values = array(
+			'status' => $_status,
+		);
+		$sql = 'SELECT ' . DB::buildField(__CLASS__) . '
+		FROM `update`
+		WHERE status=:status';
+		return DB::Prepare($sql, $values, DB::FETCH_TYPE_ALL, PDO::FETCH_CLASS, __CLASS__);
+	}
+
 	public static function byLogicalId($_logicalId) {
 		$values = array(
 			'logicalId' => $_logicalId,
@@ -172,7 +193,7 @@ class update {
 			$values['type'] = $_filter;
 			$sql .= ' WHERE `type`=:type';
 		}
-		$sql .= ' ORDER BY FIELD( `type`,"plugin","core") DESC,FIELD( `status`, "update","ok","depreciated") ASC, `name` ASC';
+		$sql .= ' ORDER BY FIELD( `status`, "update","ok","depreciated") ASC,FIELD( `type`,"plugin","core") DESC, `name` ASC';
 		return DB::Prepare($sql, $values, DB::FETCH_TYPE_ALL, PDO::FETCH_CLASS, __CLASS__);
 	}
 
@@ -217,6 +238,14 @@ class update {
 		}
 	}
 
+	public static function getAllUpdateChangelog() {
+		$params = array();
+		foreach (self::byStatus('update') as $update) {
+			$params[] = array('logicalId' => $update->getLogicalId(), 'datetime' => $update->getLocalVersion());
+		}
+		return market::getMultiChangelog($params);
+	}
+
 	/*     * *********************Méthodes d'instance************************* */
 
 	public function checkUpdate() {
@@ -232,7 +261,7 @@ class update {
 			$this->save();
 		} else {
 			try {
-				$market_info = market::getInfo($this->getLogicalId(), $this->getConfiguration('version', 'stable'));
+				$market_info = market::getInfo(array('logicalId' => $this->getLogicalId(), 'type' => $this->getType()), $this->getConfiguration('version', 'stable'));
 				$this->setStatus($market_info['status']);
 				$this->setConfiguration('market_owner', $market_info['market_owner']);
 				$this->setConfiguration('market', $market_info['market']);
@@ -272,7 +301,7 @@ class update {
 		if ($this->getType() == 'core') {
 			jeedom::update();
 		} else {
-			$market = market::byLogicalId($this->getLogicalId());
+			$market = market::byLogicalIdAndType($this->getLogicalId(), $this->getType());
 			if (is_object($market)) {
 				$market->install($this->getConfiguration('version', 'stable'));
 			}
@@ -286,7 +315,7 @@ class update {
 			throw new Exception('Vous ne pouvez pas supprimer le core de Jeedom');
 		} else {
 			try {
-				$market = market::byLogicalId($this->getLogicalId());
+				$market = market::byLogicalIdAndType($this->getLogicalId(), $this->getType());
 			} catch (Exception $e) {
 				$market = new market();
 				$market->setLogicalId($this->getLogicalId());

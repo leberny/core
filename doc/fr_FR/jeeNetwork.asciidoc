@@ -32,7 +32,8 @@ Ensuite, toujours sur le maitre aller sur Générale -> Administration -> Résea
 image::../images/jeeNetwork.JPG[]
 
 - donné lui un nom
-- indiquer l'IP de l'esclave (ne pas oublié le /jeedom si vous n'avez pas une mini, center ou pro)
+- indiquer l'IP de l'esclave
+- indiquer le complement si nécessaire (ex : /jeedom si vous n'avez une mini/center/pro et que vous utilisez le /jeedom pour vous connecter sur l'esclave)
 - la clef API de l'esclave (elle se trouve sur l'esclave dans Générale -> Administration -> Configuration)
 - sauvegarder
 
@@ -41,7 +42,7 @@ Si vous avez un message tout est lié, normalement le maitre devrais detecter au
 ===== Troubleshooting
 
 [panel,danger]
-.Erreur 404 lors d ela sauvegarde
+.Erreur 404 lors de la sauvegarde
 --
 C'est qu'il y a une erreur sur la configuration reseaux du maitre (en général)
 --
